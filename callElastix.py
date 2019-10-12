@@ -54,8 +54,8 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
             nonRigid_pMap['Metric1Weight'] = ['0.1', '0.1', '0.1', '4']  # ['0.1', '0.1', '0.1', '4']   ['0.5', '0.3', '1000', '1000']
             nonRigid_pMap['DilateRigidityImages'] = ['false', 'false', 'true', 'true']
             nonRigid_pMap['DilationRadiusMultiplier'] = ['2.0']  # originaly: 2.0
-            nonRigid_pMap['OrthonormalityConditionWeight'] = ['10.0']  # originaly: 1.0     (rigidity preservation)
-            nonRigid_pMap['PropernessConditionWeight'] = ['20.0']  # originaly: 2.0          (volume preservation)
+            nonRigid_pMap['OrthonormalityConditionWeight'] = ['3.0']  # originaly: 1.0     (rigidity preservation)
+            nonRigid_pMap['PropernessConditionWeight'] = ['6.0']  # originaly: 2.0          (volume preservation)
 
         nonRigid_pMap['MaximumNumberOfIterations'] = [str(n_itr_nonRigid)]  # reasonable range: 250 -> 2000 (500 is a good compromise)
         nonRigid_pMap['Optimizer'] = ['AdaptiveStochasticGradientDescent']  # 11 optimizers avail: 'StandardGradientDescent', 'AdaptiveStochasticGradientDescent', CMAEvolutionStrategy, ConjugateGradient, ConjugateGradientFRPR, FiniteDifferenceGradientDescent, FullSearch, QuasiNewtonLBFGS, RegularStepGradientDescent, RSGDEachParameterApart, SimultaneousPerturbation

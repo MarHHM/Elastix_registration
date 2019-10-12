@@ -72,7 +72,7 @@ arr__rigid_alignment_transform__filename = (f'{I_m}_to_{I_f}__trans__rigid_align
 
 # arr__rigid_alignment_transform__filename = (f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt',)
 for rigid_alignment_transform__filename in arr__rigid_alignment_transform__filename:
-    I_deformed_filename = f'{I_m}_vol_deformed_to_{I_f}___rigidAlignment={rigid_alignment_transform__filename.split("__")[3].split(".")[0]}___wtsOfOCandPChigher.nii'
+    I_deformed_filename = f'{I_m}_vol_deformed_to_{I_f}___rigidAlignment={rigid_alignment_transform__filename.split("__")[3].split(".")[0]}___OC_&_PC_3x.nii'
     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
                      str(n_itr_nonRigid), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
