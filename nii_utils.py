@@ -34,7 +34,7 @@ def replace_transform_nii(wrongFile_name):
 #########################################################################
 
 if __name__ == '__main__':
-    wrong_files = ('R3_boneMask.labels.binary__noFibula.nii',)
+    wrong_files = ('R1_mask_allBones.nii',)
 
     for wrong_file_name in wrong_files:
         os.chdir('S:/datasets/Sub_3')

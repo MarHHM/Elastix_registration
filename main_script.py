@@ -64,82 +64,83 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 
 #%% MULTI registration
 # # I_f_mask_name_arr = (f'{I_f}_wholeLegMask.nii', f'{I_f}_boneMask.nii', f'{I_f}-femur.nii', f'{I_f}-tibia.nii', f'{I_f}-patella.nii')
-arr__rigid_alignment_transform__filename = (f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt',
-                                            f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt',
-                                            f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt',
-                                            f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt'
-                                            )
-
-# arr__rigid_alignment_transform__filename = (f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt',)
-for rigid_alignment_transform__filename in arr__rigid_alignment_transform__filename:
-    I_deformed_filename = f'{I_m}_vol_deformed_to_{I_f}___rigidAlignment={rigid_alignment_transform__filename.split("__")[3].split(".")[0]}.nii'
-    subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
-                     dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
-                     str(n_itr_nonRigid), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
-
-    ### deform I_m-related masks & calc DSC for each
-    overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
-    pMap_filename = f'{dataset_path}/{I_deformed_filename.split(".")[0]}/TransformParameters.0.txt'
-    DSC_dict = defaultdict(list)
-    arr__mask_type = ('mask_wholeLeg', 'mask_allBones')
-    for mask_type in arr__mask_type:
-        im_to_deform_filename = f'{I_m}_{mask_type}.nii'
-        output_filename = f'{im_to_deform_filename.split(".")[0]}__deformed.nii'
-        call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
-
-        mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
-        mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{I_deformed_filename.split(".")[0]}/{output_filename.split(".")[0]}/{output_filename}')
-        overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
-        DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
-
-    print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.split(".")[0]}')
-    for mask_type in arr__mask_type:
-        print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
+# arr__rigid_alignment_transform__filename = (f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt',
+#                                             f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt',
+#                                             f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt',
+#                                             f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt'
+#                                             )
+#
+# # arr__rigid_alignment_transform__filename = (f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt',)
+# for rigid_alignment_transform__filename in arr__rigid_alignment_transform__filename:
+#     I_deformed_filename = f'{I_m}_vol_deformed_to_{I_f}___rigidAlignment={rigid_alignment_transform__filename.split("__")[3].split(".")[0]}.nii'
+#     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
+#                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
+#                      str(n_itr_nonRigid), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
+#
+#     ### deform I_m-related masks & calc DSC for each
+#     overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
+#     pMap_filename = f'{dataset_path}/{I_deformed_filename.split(".")[0]}/TransformParameters.0.txt'
+#     DSC_dict = defaultdict(list)
+#     arr__mask_type = ('mask_wholeLeg', 'mask_allBones')
+#     for mask_type in arr__mask_type:
+#         im_to_deform_filename = f'{I_m}_{mask_type}.nii'
+#         output_filename = f'{im_to_deform_filename.split(".")[0]}__deformed.nii'
+#         call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
+#
+#         mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
+#         mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{I_deformed_filename.split(".")[0]}/{output_filename.split(".")[0]}/{output_filename}')
+#         overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
+#         DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
+#
+#     print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.split(".")[0]}')
+#     for mask_type in arr__mask_type:
+#         print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
 
 
 #%% Single registration (one set of params)
 # I_deformed_filename = f'{I_m_filename.split("_")[0]} - rigidly aligned to femur only - I_m mask=wholeLeg - 250x12.nii'
 # I_deformed_filename = f'{I_m_filename.split("_")[0]} - AFTER CLIPPING.nii'
-# subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
-#                  dataset_path,
-#                  I_f_filename,
-#                  I_m_filename,
-#                  I_f_mask_filename,
-#                  I_m_mask_filename,
-#                  str(use_I_m_mask),
-#                  I_m_rigidityCoeffIm_filename,
-#                  reg_type,
-#                  str(n_itr_rigid),
-#                  str(n_itr_nonRigid),
-#                  str(n_res),
-#                  str(use_rigidityPenalty),
-#                  str(use_landmarks),
-#                  I_f_landmarks_filename,
-#                  I_m_landmarks_filename,
-#                  I_deformed_filename])
+#     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
+#                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
+#                      str(n_itr_nonRigid), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
 #
 
 #%% Transformix ###
 # dataset_path = "S:/datasets/Sub_3/"             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-# im_to_deform_filename = "R4_boneMask.nii"             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
+# im_to_deform_filename = "R4_mask_patella.nii"             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
 # # trnsfrmx_pMap = elstx_transform_pMap[0]
-# pMap_filename = 'BEFORE_CROPPING/el - R4 - rigidly aligned to patella only - with I_m mask as Patella_250x8/TransformParameters.0.txt'
-# output_filename = f'tr - R4_boneMask - rigidly aligned to patella only.nii'
+# pMap_filename = '(chosen) R4_vol__rigidly_aligned_to_R1_mask_patella__res=7__n_itr=250/TransformParameters.0.txt'
+# output_filename = f'R4_mask_patella___rigidly_aligned_to_R1_patella.nii'
 #
 # call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
 
 
-#%% # DSC  (see how it's usedin paper     "SimpleElastixWBIR2016")
-# os.chdir("S:/datasets/Sub_7/")
-# overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
-# mask_1 = sitk.ReadImage('70_wholeLegMask_rigidlyAligned.nii')
-# mask_2 = sitk.ReadImage('70_wholeLegMask_rigidlyAligned.nii')
-# overlapFilter.Execute(mask_1, mask_2)+
-# overlapFilter.GetDiceCoefficient()
+
+
+#%% # DSC
+overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
+pMap_filename = f'{dataset_path}/R4_vol_deformed_to_R1___rigidAlignment=allBones/TransformParameters.0.txt'
+DSC_dict = defaultdict(list)
+arr__mask_type = ('mask_allBones',)
+for mask_type in arr__mask_type:
+    im_to_deform_filename = f'{I_m}_{mask_type}.nii'
+    output_filename = f'{im_to_deform_filename.split(".")[0]}__deformed______.nii'
+    call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
+
+    # mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
+    mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
+    mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{output_filename.split(".")[0]}/{output_filename}')
+    overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
+    DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
+
+# print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.split(".")[0]}')
+print(f'--> DSC')
+for mask_type in arr__mask_type:
+    print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
 
 
 
-# ############# Im view (sitk -> calls ImageJ)  #############
+#%% ############# Im view (sitk -> calls ImageJ)  #############
 #
 # # Object oriented interface:
 # image_viewer = sitk.ImageViewer()       # should be able to find ImageJ
