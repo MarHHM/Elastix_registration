@@ -47,6 +47,7 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         # nonRigid_pMap['UseDirectionCosines'] = ['false']
         nonRigid_pMap['Registration'] = ['MultiMetricMultiResolutionRegistration']  # 'MultiResolutionRegistration'
         nonRigid_pMap['Metric'] = ['AdvancedMattesMutualInformation']
+        nonRigid_pMap['NumberOfHistogramBins'] = ['32']
         nonRigid_pMap['Metric0Weight'] = ['1']
         if eval(use_rigidityPenalty):
             nonRigid_pMap['Metric'] = nonRigid_pMap['Metric'] + ('TransformRigidityPenalty',)
@@ -70,7 +71,10 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         nonRigid_pMap['FixedImageBSplineInterpolationOrder'] = ['3']  # When using a RandomCoordinate sampler, the fixed image needs to be interpolated @ each iterationnonRigid_pMap['Interpolator'] = ['BSplineInterpolator']  # use 'LinearInterpolator' for faster performance
         nonRigid_pMap['BSplineInterpolationOrder'] = ['3']
         nonRigid_pMap['ResampleInterpolator'] = ['FinalBSplineInterpolator']
+
         nonRigid_pMap['NumberOfResolutions'] = [str(n_res)]  # default: 4
+        nonRigid_pMap['FinalGridSpacing'] = ['8']
+
         nonRigid_pMap['ResultImagePixelType'] = ['float']
         nonRigid_pMap['ResultImageFormat'] = ['nii']
         nonRigid_pMap['WriteTransformParametersEachResolution'] = ['true']

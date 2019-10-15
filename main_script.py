@@ -80,7 +80,7 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 #     ### deform I_m-related masks & calc DSC for each
 #     overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
 #     pMap_filename = f'{dataset_path}/{I_deformed_filename.split(".")[0]}/TransformParameters.0.txt'
-#     DSC_dict = defaultdict(list)
+#     DSC_dict = defaultdict(list);       VolSimilarity_dict = defaultdict(list);       Jaccard_dict = defaultdict(list)
 #     arr__mask_type = ('mask_wholeLeg', 'mask_allBones')
 #     for mask_type in arr__mask_type:
 #         im_to_deform_filename = f'{I_m}_{mask_type}.nii'
@@ -91,10 +91,15 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 #         mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{I_deformed_filename.split(".")[0]}/{output_filename.split(".")[0]}/{output_filename}')
 #         overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
 #         DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
+#         VolSimilarity_dict[f'{mask_type}'] = overlapFilter.GetVolumeSimilarity()
+#         Jaccard_dict[f'{mask_type}'] = overlapFilter.GetJaccardCoefficient()
 #
 #     print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.split(".")[0]}')
 #     for mask_type in arr__mask_type:
 #         print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
+#         print(f'\t  VolSimilarity for {mask_type} = {VolSimilarity_dict[f"{mask_type}"]}')
+#         print(f'\t  Jaccard coeff for {mask_type} = {Jaccard_dict[f"{mask_type}"]}')
+#         print(f'----------------------------------------------------')
 
 
 #%% Single registration (one set of params)
@@ -106,25 +111,25 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 #
 
 #%% Transformix ###
-# dataset_path = "S:/datasets/Sub_3/"             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-# im_to_deform_filename = "R4_mask_patella.nii"             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
-# # trnsfrmx_pMap = elstx_transform_pMap[0]
-# pMap_filename = '(chosen) R4_vol__rigidly_aligned_to_R1_mask_patella__res=7__n_itr=250/TransformParameters.0.txt'
-# output_filename = f'R4_mask_patella___rigidly_aligned_to_R1_patella.nii'
-#
-# call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
+dataset_path = "S:/datasets/Sub_3/"             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
+im_to_deform_filename = "R4_mask_allBones.nii"             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
+# trnsfrmx_pMap = elstx_transform_pMap[0]
+pMap_filename = 'R4_to_R1__trans__rigid_alignment__femur.txt'
+output_filename = f'R4_mask_allBones___rigidly_aligned_to_R1_femur.nii'
+
+call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
 
 
 
 
-#%% # DSC
+#%% # transformix & DSC
 overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
-pMap_filename = f'{dataset_path}/R4_vol_deformed_to_R1___rigidAlignment=allBones/TransformParameters.0.txt'
-DSC_dict = defaultdict(list)
+pMap_filename = f'{dataset_path}/R4_vol_deformed_to_R1___rigidAlignment=patella/TransformParameters.0.txt'
+DSC_dict = defaultdict(list);       VolSimilarity_dict = defaultdict(list);       Jaccard_dict = defaultdict(list)
 arr__mask_type = ('mask_allBones',)
 for mask_type in arr__mask_type:
     im_to_deform_filename = f'{I_m}_{mask_type}.nii'
-    output_filename = f'{im_to_deform_filename.split(".")[0]}__deformed______.nii'
+    output_filename = f'{im_to_deform_filename.split(".")[0]}__deformed__2.nii'
     call_transformix.call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename)
 
     # mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
@@ -132,11 +137,16 @@ for mask_type in arr__mask_type:
     mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{output_filename.split(".")[0]}/{output_filename}')
     overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
     DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
+    VolSimilarity_dict[f'{mask_type}'] = overlapFilter.GetVolumeSimilarity()
+    Jaccard_dict[f'{mask_type}'] = overlapFilter.GetJaccardCoefficient()
 
 # print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.split(".")[0]}')
-print(f'--> DSC')
+print(f'--> Label overlap meaures:')
 for mask_type in arr__mask_type:
     print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
+    print(f'\t  VolSimilarity for {mask_type} = {VolSimilarity_dict[f"{mask_type}"]}')
+    print(f'\t  Jaccard coeff for {mask_type} = {Jaccard_dict[f"{mask_type}"]}')
+    print(f'----------------------------------------------------')
 
 
 

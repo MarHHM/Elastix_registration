@@ -11,7 +11,8 @@ def call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_
     os.chdir(dataset_path)
 
     Transformix = sitk.TransformixImageFilter()
-    Transformix.SetOutputDirectory(f"{pMap_filename.split('/')[-2]}/{output_filename.split('.')[0]}")
+    # Transformix.SetOutputDirectory(f"{pMap_filename.split('/')[-2]}/{output_filename.split('.')[0]}")
+    Transformix.SetOutputDirectory(f"./{output_filename.split('.')[0]}")
     os.makedirs(Transformix.GetOutputDirectory(), exist_ok=True)
     im_to_deform = sitk.ReadImage(im_to_deform_filename)
     Transformix.SetMovingImage(im_to_deform)
