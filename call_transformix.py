@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 import SimpleITK as sitk  # see doc at     https://itk.org/SimpleITKDoxygen/html/namespaceitk_1_1simple.html
 import nibabel as nib
@@ -11,12 +12,13 @@ def call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_
     os.chdir(dataset_path)
 
     Transformix = sitk.TransformixImageFilter()
-    # Transformix.SetOutputDirectory(f"{pMap_filename.split('/')[-2]}/{output_filename.split('.')[0]}")
-    Transformix.SetOutputDirectory(f"./{output_filename.split('.')[0]}")
+    pMap__dir = str(pMap_filename).split('\\')[0]
+    Transformix.SetOutputDirectory(f"{pMap__dir}/{output_filename.stem}")
+    # Transformix.SetOutputDirectory(f"./{output_filename.stem}")
     os.makedirs(Transformix.GetOutputDirectory(), exist_ok=True)
-    im_to_deform = sitk.ReadImage(im_to_deform_filename)
+    im_to_deform = sitk.ReadImage(im_to_deform_filename.name)
     Transformix.SetMovingImage(im_to_deform)
-    pMap = sitk.ReadParameterFile(pMap_filename)
+    pMap = sitk.ReadParameterFile(f"{dataset_path}/{pMap_filename}")
     if im_to_deform.GetMetaData('bitpix') == '8' :
         pMap['FinalBSplineInterpolationOrder'] = ['0']          # A MUST when deforming a "binary" image (i.e. segmentation) (see doc)
         # pMap_filename['ResultImagePixelType'] = ["unsigend short"]       # not effective ! use sitk casting on the result instead !
@@ -46,8 +48,8 @@ def call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_
         resultImage = sitk.Cast(resultImage, sitk.sitkUInt8)
     ## write result using nibabel (not sitk.WriteImage() as it screws the header (sform_code & qform_code & quaternion))
     I_f_read_sitk_write_nib = nib.Nifti1Image(sitk.GetArrayFromImage(resultImage).swapaxes(0, 2),
-                                              nib.load(im_to_deform_filename).affine)                    # use the image resulting from Elastix registration with the affine transfrom coming from the original data (e.g. fixed im)
-    I_f_read_sitk_write_nib.to_filename(f'{Transformix.GetOutputDirectory()}/{output_filename}')
+                                              nib.load(im_to_deform_filename.name).affine)                    # use the image resulting from Elastix registration with the affine transfrom coming from the original data (e.g. fixed im)
+    I_f_read_sitk_write_nib.to_filename(f'{Transformix.GetOutputDirectory()}/{output_filename.name}')
     # sitk.WriteImage(Transformix.GetResultImage(), f'{Transformix.GetOutputDirectory()}/{output_filename}')
 
 

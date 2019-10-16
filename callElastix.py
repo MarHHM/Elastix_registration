@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 import SimpleITK as sitk  # see doc at     https://itk.org/SimpleITKDoxygen/html/namespaceitk_1_1simple.html
 import nibabel as nib
@@ -12,6 +13,7 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
     cwd = os.getcwd()
     os.chdir(dataset_path)
     # sitk.ProcessObject_GlobalDefaultDebugOn()       # to see detailed debug info (e.g. image readers... etc.)
+
     Elastix = sitk.ElastixImageFilter()
     Elastix.SetOutputDirectory(I_deformed_filename.split('.')[0])               # write all registration info there
     os.makedirs(Elastix.GetOutputDirectory(), exist_ok=True)
@@ -45,6 +47,15 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         nonRigid_pMap = sitk.ReadParameterFile('C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix_4.9.0/params_from_database/Par0004/Table_1_2_3/Par0004.bs_base.NRP08.All.txt')
         Elastix.SetInitialTransformParameterFileName(rigid_alignment_transform__filename)
         # nonRigid_pMap['UseDirectionCosines'] = ['false']
+        if I_m.GetMetaData('bitpix') == '8':
+            nonRigid_pMap['FinalBSplineInterpolationOrder'] = ['0']             # A MUST when deforming a "binary" image (i.e. segmentation)
+            # nonRigid_pMap['FixedImagePixelType'] = ['unsigned char']            # [BUG] ineffective !! use sitk casting on the result instead !
+            # nonRigid_pMap['MovingImagePixelType'] = ['unsigned char']
+            # nonRigid_pMap['ResultImagePixelType'] = ['unsigned char']
+        else:
+            nonRigid_pMap['FixedImagePixelType'] = ['float']
+            nonRigid_pMap['MovingImagePixelType'] = ['float']
+            nonRigid_pMap['ResultImagePixelType'] = ['float']
         nonRigid_pMap['Registration'] = ['MultiMetricMultiResolutionRegistration']  # 'MultiResolutionRegistration'
         nonRigid_pMap['Metric'] = ['AdvancedMattesMutualInformation']
         nonRigid_pMap['NumberOfHistogramBins'] = ['32']
@@ -64,8 +75,6 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         # nonRigid_pMap['ValueTolerance'] = ['1']
         # nonRigid_pMap['GradientMagnitudeTolerance'] = ['0.000944']
         nonRigid_pMap['DefaultPixelValue'] = [str(sitk.GetArrayFromImage(Elastix.GetMovingImage(0)).min())]  # sets pixel values outside the moving image grid (at interpolation) -> set it to <= the min in your dataset (i.e. bgd)
-        nonRigid_pMap['FixedImagePixelType'] = ['float']
-        nonRigid_pMap['MovingImagePixelType'] = ['float']
         nonRigid_pMap['ErodeMask'] = ['false']
         nonRigid_pMap['ImageSampler'] = ['RandomCoordinate']  # {Random, Full, Grid, RandomCoordinate}
         nonRigid_pMap['FixedImageBSplineInterpolationOrder'] = ['3']  # When using a RandomCoordinate sampler, the fixed image needs to be interpolated @ each iterationnonRigid_pMap['Interpolator'] = ['BSplineInterpolator']  # use 'LinearInterpolator' for faster performance
@@ -75,7 +84,7 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         nonRigid_pMap['NumberOfResolutions'] = [str(n_res)]  # default: 4
         nonRigid_pMap['FinalGridSpacing'] = ['8']
 
-        nonRigid_pMap['ResultImagePixelType'] = ['float']
+
         nonRigid_pMap['ResultImageFormat'] = ['nii']
         nonRigid_pMap['WriteTransformParametersEachResolution'] = ['true']
         nonRigid_pMap['WriteResultImageAfterEachResolution'] = ['true']
@@ -105,7 +114,10 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
     Elastix.Execute()
 
     # clip the result to the range of I_m (to clean interpolation noise at edges)
-    resultImage_arr = sitk.GetArrayFromImage(Elastix.GetResultImage())
+    resultImage = Elastix.GetResultImage()
+    if I_m.GetMetaData('bitpix') == '8':
+        resultImage = sitk.Cast(resultImage, sitk.sitkUInt8)
+    resultImage_arr = sitk.GetArrayFromImage(resultImage)
     I_m_arr = sitk.GetArrayFromImage(I_m)
     resultImage_arr = resultImage_arr.clip(min=I_m_arr.min(), max=I_m_arr.max())
 
