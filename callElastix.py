@@ -57,7 +57,8 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
             nonRigid_pMap['MovingImagePixelType'] = ['float']
             nonRigid_pMap['ResultImagePixelType'] = ['float']
         nonRigid_pMap['Registration'] = ['MultiMetricMultiResolutionRegistration']  # 'MultiResolutionRegistration'
-        nonRigid_pMap['Metric'] = ['AdvancedMattesMutualInformation']
+        # nonRigid_pMap['Metric'] = ['AdvancedMattesMutualInformation']
+        nonRigid_pMap['Metric'] = ['AdvancedKappaStatistic']
         nonRigid_pMap['NumberOfHistogramBins'] = ['32']
         nonRigid_pMap['Metric0Weight'] = ['1']
         if eval(use_rigidityPenalty):

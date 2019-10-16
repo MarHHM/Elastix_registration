@@ -66,45 +66,55 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 
 
 #%% MULTI registration
-# arr__rigid_alignment_transform__filename = (Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt'),
-#                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
-#                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
-#                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
-#                                             )
-#
-# for rigid_alignment_transform__filename in arr__rigid_alignment_transform__filename:
-#     I_deformed_filename = Path(f'{I_m_filename.stem}___deformed_to___{I_f_filename.stem}___at_rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}.nii')
-#     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
-#                      str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
-#                      str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
-#                      str(n_res), str(use_rigidityPenalty), str(use_landmarks), str(I_f_landmarks_filename), str(I_m_landmarks_filename),
-#                      str(I_deformed_filename)])
-#
-#     ## deform "I_m-related masks" & calc DSC for each
-#     overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
-#     DSC_dict = defaultdict(list)
-#     VolSimilarity_dict = defaultdict(list)
-#     # Jaccard_dict = defaultdict(list)
-#     pMap_filename = Path(f'{I_deformed_filename.stem}/TransformParameters.0.txt')
-#     arr__mask_type = ('mask_wholeLeg', 'mask_allBones')
-#     for mask_type in arr__mask_type:
-#         im_to_deform___filename = Path(f'{I_m}_{mask_type}.nii')
-#         output_filename = Path(f'{im_to_deform___filename.stem}__deformed.nii')
-#         call_transformix.call_transformix(dataset_path, im_to_deform___filename, pMap_filename, output_filename)
-#
-#         mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
-#         mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{I_deformed_filename.stem}/{output_filename.stem}/{output_filename}')
-#         overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
-#         DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
-#         VolSimilarity_dict[f'{mask_type}'] = overlapFilter.GetVolumeSimilarity()
-#         # Jaccard_dict[f'{mask_type}'] = overlapFilter.GetJaccardCoefficient()
-#
-#     print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.stem}')
-#     for mask_type in arr__mask_type:
-#         print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
-#         print(f'\t  VolSimilarity for {mask_type} = {VolSimilarity_dict[f"{mask_type}"]}')
-#         # print(f'\t  Jaccard coeff for {mask_type} = {Jaccard_dict[f"{mask_type}"]}')
-#         print(f'----------------------------------------------------')
+arr__rigid_alignment_transform__filename = (Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt'),
+                                            Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
+                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
+                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
+                                            )
+
+for rigid_alignment_transform__filename in arr__rigid_alignment_transform__filename:
+    I_deformed_filename = Path(f'{I_m_filename.stem}___deformed_to___{I_f_filename.stem}___'
+                               f'at_rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}___using_K_statistic.nii')
+    subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
+                     str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
+                     str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
+                     str(n_res), str(use_rigidityPenalty), str(use_landmarks), str(I_f_landmarks_filename), str(I_m_landmarks_filename),
+                     str(I_deformed_filename)])
+
+    ## deform "I_m-related masks" & calc DSC for each
+    overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
+    DSC_dict = defaultdict(list)
+    # VolSimilarity_dict = defaultdict(list)
+    # Jaccard_dict = defaultdict(list)
+    pMap_filename = Path(f'{I_deformed_filename.stem}/TransformParameters.0.txt')
+    arr__mask_type = ('mask_wholeLeg', 'mask_allBones')
+    for mask_type in arr__mask_type:
+        im_to_deform___filename = Path(f'{I_m}_{mask_type}.nii')
+        output_filename = Path(f'{im_to_deform___filename.stem}__deformed.nii')
+        call_transformix.call_transformix(dataset_path, im_to_deform___filename, pMap_filename, output_filename)
+
+        mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
+        mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{I_deformed_filename.stem}/{output_filename.stem}/{output_filename}')
+        overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
+        DSC_dict[f'{mask_type}'] = overlapFilter.GetDiceCoefficient()
+        # VolSimilarity_dict[f'{mask_type}'] = overlapFilter.GetVolumeSimilarity()
+        # Jaccard_dict[f'{mask_type}'] = overlapFilter.GetJaccardCoefficient()
+
+    f = open(f"{dataset_path}/{I_deformed_filename.stem}/DSC.txt", "w+")
+    print(f'--> DSC using the nonrigid transform in   {I_deformed_filename.stem}')
+    for mask_type in arr__mask_type:
+        # writre to console
+        print(f'\t  DSC for {mask_type} = {DSC_dict[f"{mask_type}"]}')
+        # print(f'\t  VolSimilarity for {mask_type} = {VolSimilarity_dict[f"{mask_type}"]}')
+        # print(f'\t  Jaccard coeff for {mask_type} = {Jaccard_dict[f"{mask_type}"]}')
+        print(f'----------------------------------------------------')
+
+        # write to file
+        f.write(f'DSC for {mask_type} = {DSC_dict[f"{mask_type}"]} \n')
+        # f.write(f'VolSimilarity for {mask_type} = {VolSimilarity_dict[f"{mask_type}"]} \n')
+        # print(f'\t  Jaccard coeff for {mask_type} = {Jaccard_dict[f"{mask_type}"]}')
+        f.write(f'---------------------------------------------------- \n')
+    f.close()
 
 
 #%% Single registration (one set of params)
@@ -127,14 +137,14 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 
 
 #%% DICE only
-mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_mask_allBones.nii')
-mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/R4_mask_allBones___deformed_to___R1_mask_allBones___at_rigidAlignment=femur/'
-                                   f'R4_mask_allBones___deformed_to___R1_mask_allBones___at_rigidAlignment=femur.nii')
-overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
-overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
-
-print(f'DSC = {overlapFilter.GetDiceCoefficient()}')
-print(f'VolSim = {overlapFilter.GetVolumeSimilarity()}')
+# mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_mask_allBones.nii')
+# mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/R4_mask_allBones___deformed_to___R1_mask_allBones___at_rigidAlignment=femur/'
+#                                    f'R4_mask_allBones___deformed_to___R1_mask_allBones___at_rigidAlignment=femur.nii')
+# overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
+# overlapFilter.Execute(mask_I_f, mask_I_m_deformed)
+#
+# print(f'DSC = {overlapFilter.GetDiceCoefficient()}')
+# print(f'VolSim = {overlapFilter.GetVolumeSimilarity()}')
 
 
 
