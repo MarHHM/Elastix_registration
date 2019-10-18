@@ -68,16 +68,23 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 
 #%% MULTI registration
 arr__rigid_alignment_transform__filename = (Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt'),
-                                            Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
+                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
                                             )
-arr__n_itr = (1, 3)
-
-for rigid_alignment_transform__filename,      n_itr_nonRigid in itertools.product(
-    arr__rigid_alignment_transform__filename, arr__n_itr) :
-    I_deformed_filename = Path(f'{I_m_filename.stem}___deformed_to___{I_f_filename.stem}___'
-                               f'at_rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}__n_itr={n_itr_nonRigid}')
+arr__n_itr = (1,
+              # 4
+              )
+arr__n_res = (1,
+              # 2
+              )
+for rigid_alignment_transform__filename,            n_itr_nonRigid,     n_res       in itertools.product(
+    arr__rigid_alignment_transform__filename,       arr__n_itr,         arr__n_res                      ) :
+    I_deformed_filename = Path(f'{I_m_filename.stem}___deformed_to___{I_f_filename.stem}___at_'
+                               f'rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}__'
+                               f'n_itr={n_itr_nonRigid}__'
+                               f'n_res={n_res}'
+                               )
     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
                      str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
                      str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
