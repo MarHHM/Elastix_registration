@@ -38,8 +38,8 @@ I_m_mask_filename = Path(f'{I_m}______.nii')                                    
 
 reg_type = "NON_RIGID"                                                              # 'RIGID' - 'NON_RIGID'
 n_itr_rigid = 0
-n_itr_nonRigid = 1                                                               # 250 -> 2000 (good: 500) -  for all resolutions
-n_res = 1                                                                           # default: 4     (used for all registrations)
+n_itr_nonRigid = 2000                                                               # 250 -> 2000 (good: 500) -  for all resolutions
+n_res = 4                                                                           # default: 4     (used for all registrations)
 
 # rigid_alignment_transform__filename = f'____________'             # '{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt' ||
 use_rigidityPenalty = True
@@ -68,13 +68,13 @@ if not ( np.array_equiv(I_f_affine, I_m_affine)
 #%% MULTI registration
 arr__rigid_alignment_transform__filename = (Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt'),
                                             Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
-                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
-                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
+                                            Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
+                                            Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
                                             )
 
 for rigid_alignment_transform__filename in arr__rigid_alignment_transform__filename:
     I_deformed_filename = Path(f'{I_m_filename.stem}___deformed_to___{I_f_filename.stem}___'
-                               f'at_rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}___using_K_statistic.nii')
+                               f'at_rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}___wtOfRigidtyPenaltyAtRes4=16.nii')
     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
                      str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
                      str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
