@@ -90,12 +90,16 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         nonRigid_pMap['WriteTransformParametersEachResolution'] = ['true']
         nonRigid_pMap['WriteResultImageAfterEachResolution'] = ['true']
 
-    if eval(use_landmarks):  # must add it as the last metric
+    if eval(use_landmarks):         # must add it as the last metric
         Elastix.SetFixedPointSetFileName(I_f_landmarks_filename)
         Elastix.SetMovingPointSetFileName(I_m_landmarks_filename)
         rigid_pMap['Metric'] = rigid_pMap['Metric'] + ('CorrespondingPointsEuclideanDistanceMetric',)
-        if reg_type == 'NON_RIGID' or reg_type == 'PRE_ALLIGNED_NON_RIGID':
+        if reg_type == 'NON_RIGID':
             nonRigid_pMap['Metric'] = nonRigid_pMap['Metric'] + ('CorrespondingPointsEuclideanDistanceMetric',)
+            if eval(use_rigidityPenalty):
+                nonRigid_pMap['Metric2Weight'] = ['100']
+            else:
+                nonRigid_pMap['Metric1Weight'] = ['100']
 
     if reg_type == 'RIGID':
         Elastix.SetParameterMap(rigid_pMap)
@@ -111,7 +115,7 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
 
     Elastix.SetLogToConsole(True)  # to see output of each iteration
     Elastix.SetLogToFile(True)
-    Elastix.PrintParameterMap()  # for confirmation
+    # Elastix.PrintParameterMap()  # for confirmation
     Elastix.Execute()
 
     # clip the result to the range of I_m (to clean interpolation noise at edges)
