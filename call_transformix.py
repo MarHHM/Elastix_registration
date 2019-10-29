@@ -6,16 +6,16 @@ import SimpleITK as sitk  # see doc at     https://itk.org/SimpleITKDoxygen/html
 import nibabel as nib
 
 
-def call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_filename):
+def call_transformix(**kwargs):
     print('\n###################### TRANSFORMIX ######################\n')
     cwd = os.getcwd()
-    os.chdir(dataset_path)
+    os.chdir(kwargs['dataset_path'])
 
     Transformix = sitk.TransformixImageFilter()
-    pMap__dir = str(pMap_filename).split('\\')[0]
-    Transformix.SetOutputDirectory(f"{pMap__dir}/{output_filename.stem}")
+    pMap__dir = str(kwargs['pMap_path']).split('\\')[0]
+    Transformix.SetOutputDirectory(f"{pMap__dir}/{kwargs['output_filename'].stem}")
     os.makedirs(Transformix.GetOutputDirectory(), exist_ok=True)
-    pMap = sitk.ReadParameterFile(f"{dataset_path}/{pMap_filename}")
+    pMap = sitk.ReadParameterFile(f"{kwargs['dataset_path']}/{kwargs['pMap_path']}")
     # workaround to solve this issue      <https://groups.google.com/forum/#!category-topic/elastix-imageregistration/simpleelastix/TlAbmFE8TPw>
     init_transform_param_filename = pMap['InitialTransformParametersFileName'][0]
     if init_transform_param_filename != 'NoInitialTransform':
@@ -24,16 +24,16 @@ def call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_
         Transformix.SetTransformParameterMap(pMap_init)
     Transformix.AddTransformParameterMap(pMap)
 
-    if im_to_deform_filename.suffix == '.pts' :                 # deforming (transforming) a point set
-        Transformix.SetFixedPointSetFileName(f"{dataset_path}/{im_to_deform_filename}")
-        im_to_deform = sitk.ReadImage(f"R4_vol.nii")            # (WORKAROUND) has to set any dummy image as a moving image so that transformix can know the dimensionality of the your data (no info about it in th parameter file or in the landmarks file) (issues 113 & 147 in SimpleElastix repo)
+    if kwargs['im_to_deform_filename'].suffix == '.pts' :                 # deforming (transforming) a point set
+        Transformix.SetFixedPointSetFileName(f"{kwargs['dataset_path']}/{kwargs['im_to_deform_filename']}")
+        im_to_deform = sitk.ReadImage(f"R4_vol.nii")            # (WORKAROUND) has to set any dummy moving image so that transformix can know the dimensionality of the your data (no info about it in th parameter file or in the landmarks file) (issues 113 & 147 in SimpleElastix repo)
     else:                                                       # deforming intensity data (e.g. .nii)
-        im_to_deform = sitk.ReadImage(im_to_deform_filename.name)
+        im_to_deform = sitk.ReadImage(kwargs['im_to_deform_filename'].name)
 
     Transformix.SetMovingImage(im_to_deform)
     if im_to_deform.GetMetaData('bitpix') == '8' :
         pMap['FinalBSplineInterpolationOrder'] = ['0']          # A MUST when deforming a "binary" image (i.e. segmentation) (see doc)
-        # pMap_filename['ResultImagePixelType'] = ["unsigend short"]       # not effective ! use sitk casting on the result instead !
+        # kwargs['pMap_path']['ResultImagePixelType'] = ["unsigend short"]       # not effective ! use sitk casting on the result instead !
     pMap['DefaultPixelValue'] = [str(sitk.GetArrayFromImage(Transformix.GetMovingImage()).min())]                    # sets pixel values outside the moving image grid (at interpolation) -> set it to <= the min in your dataset (i.e. bgd)
     pMap['ResultImageFormat'] = ['nii']
 
@@ -48,15 +48,15 @@ def call_transformix(dataset_path, im_to_deform_filename, pMap_filename, output_
 
     Transformix.Execute()       # automatically writes the resulting "spatialJacobian" & "FullSpatialJacobian"
 
-    if im_to_deform_filename.suffix != '.pts':              # no need to do the following postprocessing in the case of transforming point sets
+    if kwargs['im_to_deform_filename'].suffix != '.pts':              # no need to do the following postprocessing in the case of transforming point sets
         resultImage = Transformix.GetResultImage()
         if im_to_deform.GetMetaData('bitpix') == '8':
             resultImage = sitk.Cast(resultImage, sitk.sitkUInt8)
         ## write result using nibabel (not sitk.WriteImage() as it screws the header (sform_code & qform_code & quaternion))
         I_f_read_sitk_write_nib = nib.Nifti1Image(sitk.GetArrayFromImage(resultImage).swapaxes(0, 2),
-                                                  nib.load(im_to_deform_filename.name).affine)                    # use the image resulting from Elastix registration with the affine transfrom coming from the original data (e.g. fixed im)
-        I_f_read_sitk_write_nib.to_filename(f'{Transformix.GetOutputDirectory()}/{output_filename.name}')
-        # sitk.WriteImage(Transformix.GetResultImage(), f'{Transformix.GetOutputDirectory()}/{output_filename}')
+                                                  nib.load(kwargs['im_to_deform_filename'].name).affine)                    # use the image resulting from Elastix registration with the affine transfrom coming from the original data (e.g. fixed im)
+        I_f_read_sitk_write_nib.to_filename(f'{Transformix.GetOutputDirectory()}/{kwargs["output_filename"].name}')
+        # sitk.WriteImage(Transformix.GetResultImage(), f'{Transformix.GetOutputDirectory()}/{kwargs['output_filename']}')
 
 
     ### TESTING reading deformation field

@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="main_script" type="PythonConfigurationType" factoryName="Python" singleton="true">
+  <configuration default="false" name="main_script" type="PythonConfigurationType" factoryName="Python" singleton="false">
     <module name="Elastix_registration" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
