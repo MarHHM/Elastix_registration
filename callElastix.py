@@ -28,7 +28,7 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
     rigid_pMap = sitk.GetDefaultParameterMap('rigid')   # 'translation' - 'rigid' - 'affine' - 'bspline' (defaults)
     rigid_pMap['Registration'] = ['MultiMetricMultiResolutionRegistration']
     rigid_pMap['AutomaticScalesEstimation'] = ['true']
-    rigid_pMap['MaximumNumberOfIterations'] = [str(n_itr_rigid)]
+    rigid_pMap['MaximumNumberOfIterations'] = [n_itr_rigid]
     rigid_pMap['ErodeMask'] = ['false']
     rigid_pMap['ImageSampler'] = ['RandomCoordinate']  # {Random, Full, Grid, RandomCoordinate}
     rigid_pMap['Interpolator'] = ['BSplineInterpolator']  # use 'LinearInterpolator' for faster performance
@@ -36,7 +36,7 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
     rigid_pMap['ResampleInterpolator'] = ['FinalBSplineInterpolator']
     rigid_pMap['Optimizer'] = ['AdaptiveStochasticGradientDescent']  # 11 optimizers avail: 'StandardGradientDescent', 'AdaptiveStochasticGradientDescent', CMAEvolutionStrategy, ConjugateGradient, ConjugateGradientFRPR, FiniteDifferenceGradientDescent, FullSearch, QuasiNewtonLBFGS, RegularStepGradientDescent, RSGDEachParameterApart, SimultaneousPerturbation
     rigid_pMap['AutomaticParameterEstimation'] = ['true']  # default: true
-    rigid_pMap['NumberOfResolutions'] = [str(n_res)]
+    rigid_pMap['NumberOfResolutions'] = [n_res]
     rigid_pMap['ResultImageFormat'] = ['nii']
     rigid_pMap['WriteTransformParametersEachResolution'] = ['true']
     rigid_pMap['WriteResultImageAfterEachResolution'] = ['true']
@@ -44,7 +44,8 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
 
 
     if reg_type == 'NON_RIGID':
-        nonRigid_pMap = sitk.ReadParameterFile('C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix_4.9.0/params_from_database/Par0004/Table_1_2_3/Par0004.bs_base.NRP08.All.txt')
+        nonRigid_pMap = sitk.ReadParameterFile('C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix_4.9.0/'
+                                               'params_from_database/Par0004/Table_1_2_3/Par0004.bs_base.NRP08.All.txt')
         Elastix.SetInitialTransformParameterFileName(rigid_alignment_transform__filename)
         # nonRigid_pMap['UseDirectionCosines'] = ['false']
         if I_m.GetMetaData('bitpix') == '8':
@@ -58,23 +59,23 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
             nonRigid_pMap['ResultImagePixelType'] = ['float']
         nonRigid_pMap['Registration'] = ['MultiMetricMultiResolutionRegistration']  # 'MultiResolutionRegistration'
         nonRigid_pMap['Metric'] = ['AdvancedMattesMutualInformation']
-        # nonRigid_pMap['Metric'] = ['AdvancedKappaStatistic']              # good as a similariy cost for regidstering binary images (i.e. masks)
         nonRigid_pMap['NumberOfHistogramBins'] = ['32']
+        # nonRigid_pMap['Metric'] = ['AdvancedKappaStatistic']              # good as a similariy cost for registering binary images (i.e. masks)
         nonRigid_pMap['Metric0Weight'] = ['1']
         if eval(use_rigidityPenalty):
             nonRigid_pMap['Metric'] = nonRigid_pMap['Metric'] + ('TransformRigidityPenalty',)
             nonRigid_pMap['MovingRigidityImageName'] = [I_m_rigidityCoeffIm_filename]
-            nonRigid_pMap['Metric1Weight'] = ['0.1', '0.1', '0.1', '4']  # ['0.1', '0.1', '0.1', '4']   ['0.5', '0.3', '1000', '1000']
+            nonRigid_pMap['Metric1Weight'] = ['0.1', '0.1', '4', '4', '4']  # ['0.1', '0.1', '0.1', '4']   ['0.5', '0.3', '1000', '1000']
             nonRigid_pMap['DilateRigidityImages'] = ['false', 'false', 'true', 'true']
             nonRigid_pMap['DilationRadiusMultiplier'] = ['2.0']  # originaly: 2.0
             nonRigid_pMap['OrthonormalityConditionWeight'] = ['1.0']  # originaly: 1.0     (rigidity preservation)
             nonRigid_pMap['PropernessConditionWeight'] = ['2.0']  # originaly: 2.0          (volume preservation)
 
-        nonRigid_pMap['MaximumNumberOfIterations'] = [str(n_itr_nonRigid)]  # reasonable range: 250 -> 2000 (500 is a good compromise)
+        nonRigid_pMap['MaximumNumberOfIterations'] = [n_itr_nonRigid]  # reasonable range: 250 -> 2000 (500 is a good compromise)
         nonRigid_pMap['Optimizer'] = ['AdaptiveStochasticGradientDescent']  # 11 optimizers avail: 'StandardGradientDescent', 'AdaptiveStochasticGradientDescent', CMAEvolutionStrategy, ConjugateGradient, ConjugateGradientFRPR, FiniteDifferenceGradientDescent, FullSearch, QuasiNewtonLBFGS, RegularStepGradientDescent, RSGDEachParameterApart, SimultaneousPerturbation
         nonRigid_pMap['AutomaticParameterEstimation'] = ['true']
-        # nonRigid_pMap['ValueTolerance'] = ['1']
-        # nonRigid_pMap['GradientMagnitudeTolerance'] = ['0.000944']
+        # nonRigid_pMap['ValueTolerance'] = ['1']                           # seems ineffective for 'AdaptiveStochasticGradientDescent'
+        # nonRigid_pMap['GradientMagnitudeTolerance'] = ['0.000944']        # seems ineffective for 'AdaptiveStochasticGradientDescent'
         nonRigid_pMap['DefaultPixelValue'] = [str(sitk.GetArrayFromImage(Elastix.GetMovingImage(0)).min())]  # sets pixel values outside the moving image grid (at interpolation) -> set it to <= the min in your dataset (i.e. bgd)
         nonRigid_pMap['ErodeMask'] = ['false']
         nonRigid_pMap['ImageSampler'] = ['RandomCoordinate']  # {Random, Full, Grid, RandomCoordinate}
@@ -82,8 +83,9 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         nonRigid_pMap['BSplineInterpolationOrder'] = ['3']
         nonRigid_pMap['ResampleInterpolator'] = ['FinalBSplineInterpolator']
 
-        nonRigid_pMap['NumberOfResolutions'] = [str(n_res)]  # default: 4
-        nonRigid_pMap['FinalGridSpacing'] = ['8']
+        nonRigid_pMap['NumberOfResolutions'] = [n_res]                     # default: 4
+        nonRigid_pMap['FinalGridSpacingInVoxels'] = ['2.0']                     # used in Staring 2007: 8.0; will be automatically approximated for each direction during execution
+        nonRigid_pMap['GridSpacingSchedule'] = [str(2**(int(n_res)-1 - i))  for i in range(int(n_res))]         # generate using "list comprehension", default for 4 resolutions: ['2**3', '2**2', '2**1', '2**0']
 
 
         nonRigid_pMap['ResultImageFormat'] = ['nii']
@@ -97,26 +99,28 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
         if reg_type == 'NON_RIGID':
             nonRigid_pMap['Metric'] = nonRigid_pMap['Metric'] + ('CorrespondingPointsEuclideanDistanceMetric',)
             if eval(use_rigidityPenalty):
-                nonRigid_pMap['Metric2Weight'] = ['100']
+                nonRigid_pMap['Metric2Weight'] = ['0.25']
             else:
-                nonRigid_pMap['Metric1Weight'] = ['100']
+                nonRigid_pMap['Metric1Weight'] = ['0.25']
 
     if reg_type == 'RIGID':
         Elastix.SetParameterMap(rigid_pMap)
-        Elastix.WriteParameterFile(Elastix.GetParameterMap()[0], f'{Elastix.GetOutputDirectory()}/pMap0.txt')
     elif reg_type == 'NON_RIGID':
         Elastix.SetParameterMap(nonRigid_pMap)
-        Elastix.WriteParameterFile(Elastix.GetParameterMap()[0], f'{Elastix.GetOutputDirectory()}/pMap0.txt')
-    elif reg_type == 'PRE_ALLIGNED_NON_RIGID':
-        Elastix.SetParameterMap(rigid_pMap)
-        Elastix.AddParameterMap(nonRigid_pMap)
-        Elastix.WriteParameterFile(Elastix.GetParameterMap()[0], f'{Elastix.GetOutputDirectory()}/pMap0.txt')
-        Elastix.WriteParameterFile(Elastix.GetParameterMap()[1], f'{Elastix.GetOutputDirectory()}/pMap1.txt')
+    # elif reg_type == 'PRE_ALLIGNED_NON_RIGID':
+    #     Elastix.SetParameterMap(rigid_pMap)
+    #     Elastix.AddParameterMap(nonRigid_pMap)
+    #     Elastix.WriteParameterFile(Elastix.GetParameterMap()[0], f'{Elastix.GetOutputDirectory()}/pMap0.txt')
+    #     Elastix.WriteParameterFile(Elastix.GetParameterMap()[1], f'{Elastix.GetOutputDirectory()}/pMap1.txt')
 
     Elastix.SetLogToConsole(True)  # to see output of each iteration
     Elastix.SetLogToFile(True)
     # Elastix.PrintParameterMap()  # for confirmation
-    Elastix.Execute()
+    try:
+        Elastix.Execute()
+    except:
+        return False
+
 
     # clip the result to the range of I_m (to clean interpolation noise at edges)
     resultImage = Elastix.GetResultImage()
@@ -129,10 +133,19 @@ def callElastix(self, dataset_path, I_f_filename, I_m_filename, I_f_mask_filenam
     # write result using nibabel (not sitk.WriteImage() as it screws the header (sform_code & qform_code & quaternion))
     I_f_read_sitk_write_nib = nib.Nifti1Image(resultImage_arr.swapaxes(0, 2),  # swapping due to diff bet nibabel & itk image axes
                                               nib.load(I_f_filename).affine)                                    # use the image resulting from Elastix registration with the affine transfrom coming from the original data (e.g. fixed im)
-    I_f_read_sitk_write_nib.to_filename(f'{Elastix.GetOutputDirectory()}/{I_deformed_filename}')
-    # sitk.WriteImage(resultImage, f'{Elastix.GetOutputDirectory()}/{I_deformed_filename}')
+    try:
+        I_f_read_sitk_write_nib.to_filename(f'{Elastix.GetOutputDirectory()}/{I_deformed_filename}')
+        # sitk.WriteImage(resultImage, f'{Elastix.GetOutputDirectory()}/{I_deformed_filename}')
+    except:
+        I_f_read_sitk_write_nib.to_filename(f'{Elastix.GetOutputDirectory()}/__TEMP_NAME__{n_res}x{n_itr_nonRigid}.nii')
+
+    Elastix.WriteParameterFile(Elastix.GetParameterMap()[0], f'{Elastix.GetOutputDirectory()}/pMap0.txt')
 
     os.chdir(cwd)               # back to the working directory before entering this method
+    return True
 #################################################################
 if __name__ == '__main__':
-    callElastix(*sys.argv)              # unpack sys.argv
+    if callElastix(*sys.argv):              # unpack sys.argv
+        exit(0)
+    else:
+        exit(-1)

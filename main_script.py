@@ -39,8 +39,8 @@ I_m_mask_filename = Path(f'{I_m}______.nii')                                    
 
 reg_type = "NON_RIGID"                                                              # 'RIGID' - 'NON_RIGID'
 n_itr_rigid = 0
-n_itr_nonRigid = 1                                                               # 250 -> 2000 (good: 500) -  for all resolutions
-n_res = 1                                                                           # default: 4     (used for all registrations)
+# n_itr_nonRigid = 1                                                               # 250 -> 2000 (good: 500) -  for all resolutions
+# n_res = 1                                                                           # default: 4     (used for all registrations)
 
 # rigid_alignment_transform__filename = f'____________'             # '{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt' ||
 use_rigidityPenalty = True
@@ -73,25 +73,33 @@ arr__rigid_alignment_transform__filename = (
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
                                             )
-arr__n_itr_nonRigid = (2000,)
-arr__n_res = (1, 4)
-arr__use_landmarks = (True, False)
+arr__n_itr_nonRigid = (2000, 500, 1000,)
+arr__n_res = (5, 4, 3, 2, 1,)               # def: (4, 1, 3, 2)
+arr__use_landmarks = (True,)
 
 for rigid_alignment_transform__filename, n_itr_nonRigid, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
                                                                                                    arr__n_itr_nonRigid,
                                                                                                    arr__n_res,
                                                                                                    arr__use_landmarks) :
-    I_deformed_filename = Path(f'{I_m_filename.stem}___deformed_to___{I_f_filename.stem}___at_'
-                               f'rigidAlignment={rigid_alignment_transform__filename.stem.split("__")[3]}__'
+    I_deformed_filename = Path(f'{I_m_filename.stem}__defTo__{I_f_filename.stem}___at_'
+                               f'rgAln={rigid_alignment_transform__filename.stem.split("__")[3]}__'
                                # f'n_itr={n_itr_nonRigid}__'
-                               f'n_res={n_res}__'
-                               f'use_landmarks={use_landmarks}'
+                               f'{n_res}x{n_itr_nonRigid}__'
+                               # f'useLndmrks={use_landmarks}__'
+                               f'rgdtyWt=4__'
+                               f'LndmrksWt=0_25__'
+                               f'gridSpc=2__'
+                               f'cost=MI'
+                               f'.nii'
                                )
-    subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
-                     str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
-                     str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
-                     str(n_res), str(use_rigidityPenalty), str(use_landmarks), str(I_f_landmarks_filename), str(I_m_landmarks_filename),
-                     str(I_deformed_filename)])
+    exit_code = subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
+                                str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
+                                str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
+                                str(n_res), str(use_rigidityPenalty), str(use_landmarks), str(I_f_landmarks_filename), str(I_m_landmarks_filename),
+                                str(I_deformed_filename)])
+    if exit_code != 0:
+        print("ERROR DURING ELASTIX EXECUTION !!  -  skipping to next execution...")
+        continue
 
     ## deform "I_m-related masks" & calc DSC for each
     overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
@@ -103,7 +111,11 @@ for rigid_alignment_transform__filename, n_itr_nonRigid, n_res, use_landmarks in
     for mask_type in arr__mask_type:
         im_to_deform___filename = Path(f'{I_m}_{mask_type}.nii')
         output_filename = Path(f'{im_to_deform___filename.stem}__deformed.nii')
-        call_transformix.call_transformix(dataset_path, im_to_deform___filename, pMap_filename, output_filename)
+        call_transformix.call_transformix(dataset_path = dataset_path,
+                                          im_to_deform_filename = im_to_deform___filename,
+                                          pMap_path = pMap_filename,
+                                          output_filename = output_filename,
+                                          )
 
         mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_{mask_type}.nii')
         mask_I_m_deformed = sitk.ReadImage(f'{dataset_path}/{I_deformed_filename.stem}/{output_filename.stem}/{output_filename}')
@@ -135,16 +147,17 @@ for rigid_alignment_transform__filename, n_itr_nonRigid, n_res, use_landmarks in
 #     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
 #                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
 #                      str(n_itr_nonRigid), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
-#
+
 
 #%% Transformix ###
-# dataset_path = Path("S:/datasets/Sub_3/")             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-# im_to_deform___filename = Path("R1_landmarks_knee.pts")             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
-# # trnsfrmx_pMap = elstx_transform_pMap[0]
-# pMap_path = Path('R4_to_R1__trans__rigid_alignment__femur/R4_to_R1__trans__rigid_alignment__femur.txt')
-# output_filename = Path(f'R1_landmarks_knee___rigidly_aligned_to_R4_femur.nii')
-#
-# call_transformix.call_transformix(dataset_path, im_to_deform___filename, pMap_path, output_filename)
+# call_transformix.call_transformix(dataset_path = Path("S:/datasets/Sub_3/"),             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
+#                                   im_to_deform___filename = Path("R1_landmarks_knee.pts"),             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
+#                                   # trnsfrmx_pMap = elstx_transform_pMap[0]
+#                                   pMap_path = Path('R4_to_R1__trans__rigid_alignment__femur/R4_to_R1__trans__rigid_alignment__femur.txt'),
+#                                   output_filename = Path(f'R1_landmarks_knee___rigidly_aligned_to_R4_femur.nii'),
+#                                   )
+
+
 
 
 
