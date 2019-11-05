@@ -56,8 +56,8 @@ arr__rigid_alignment_transform__filename = (
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
                                             )
-arr__n_itr = (2000,)    # def: (2000, 500, 1000,)
-arr__n_res = (4,)               # def: (4, 1, 3, 2)
+arr__n_itr = (1,)    # def: (2000, 500, 1000,)
+arr__n_res = (1,)               # def: (4, 1, 3, 2)
 arr__use_landmarks = (False,)
 
 for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
