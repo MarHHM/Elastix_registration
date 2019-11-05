@@ -132,7 +132,6 @@ for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertool
 #                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
 #                      str(n_itr), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
 
-
 #%% Transformix ###
 # call_transformix.call_transformix(dataset_path = Path("S:/datasets/Sub_3/"),             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
 #                                   im_to_deform___filename = Path("R1_landmarks_knee.pts"),             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
