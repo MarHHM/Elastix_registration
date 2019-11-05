@@ -1,0 +1,73 @@
+// VIP: I overwrite most of these params in my script (callElastix.py) before executing te registration  !!
+
+//ImageTypes
+//(FixedImagePixelType "short")
+//(FixedImageDimension 3)
+//(MovingImagePixelType "short")
+//(MovingImageDimension 3)
+
+//Components
+//(Registration "MultiMetricMultiResolutionRegistration")
+// (FixedImagePyramid "FixedRecursiveImagePyramid")
+// (MovingImagePyramid "MovingRecursiveImagePyramid")
+(Interpolator "BSplineInterpolator")
+//(Metric "AdvancedMattesMutualInformation" "TransformRigidityPenalty")
+//(Optimizer "StandardGradientDescent")
+(ResampleInterpolator "FinalBSplineInterpolator")
+(Resampler "DefaultResampler")
+(Transform "BSplineTransform")
+
+// Transform
+// (FinalGridSpacing 8.0)			// using 'FinalGridSpacingInVoxels' instead
+// (UpsampleGridOption "true")		// using 'GridSpacingSchedule' instead
+
+// Multi resolution
+(NumberOfResolutions 4)
+
+// Sampling
+(NewSamplesEveryIteration "true" "true" "true" "true")
+(NumberOfSpatialSamples 5000 5000 5000 5000)
+(ErodeMask "true" "true")
+
+// Interpolation and resampling
+(BSplineInterpolationOrder 1)
+(FinalBSplineInterpolationOrder 3)
+//(DefaultPixelValue -1000)
+
+// Output and other
+//(WriteTransformParametersEachIteration "false" "false" "false" "false")
+//(WriteTransformParametersEachResolution "true" "true" "true" "true")
+//(ShowExactMetricValue "false" "false" "false" "false")
+//(WriteResultImageAfterEachResolution "false")
+
+// Optimiser
+// SP: a_k = a/(A+k+1)^alpha
+//(MaximumNumberOfIterations 300 300 300 1200)
+//(SP_a 150000.0 120000.0 70000.0 20000.0)
+//(SP_alpha 0.602 0.602 0.602 0.602)
+//(SP_A 100.0 100.0 100.0 100.0)
+
+// Metric
+
+// Mattes mutual information:
+//(NumberOfHistogramBins 32 32 32 32)
+
+// MMIWRR specific
+//(Metric0Weight 1.0)
+//(Metric1Weight 0.1 0.1 0.1 4.0)
+(LinearityConditionWeight 100.0)
+(OrthonormalityConditionWeight 1.0)
+(PropernessConditionWeight 2.0)
+(UseLinearityCondition "true")
+(UseOrthonormalityCondition "true")
+(UsePropernessCondition "true")
+(CalculateLinearityCondition "true")
+(CalculateOrthonormalityCondition "true")
+(CalculatePropernessCondition "true")
+//DilateRigidityImage at finest resolution (Staring 2007) 
+(DilateRigidityImages "false" "false" "false" "true")
+(DilationRadiusMultiplier 2.0)
+(UseFixedRigidityImage "false")
+//(FixedRigidityImageName "dummy")
+(UseMovingRigidityImage "true")
+//(MovingRigidityImageName "/data/name_roughseg_tumors.mhd")

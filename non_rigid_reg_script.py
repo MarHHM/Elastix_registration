@@ -11,44 +11,27 @@ import call_transformix
 from collections import defaultdict
 
 #%%
-# dataset_path = "S:/datasets/Sub_7/"             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-# I_f_filename = "72_t1-minus-t2.nii"                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
-# I_m_filename = "70_t1-minus-t2_rigidlyAligned.nii"                                     # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
-# I_f_mask_filename = "72_wholeLegMask.labels.nii"                        # "R1_wholeLegMask.labels.nii"    '72_wholeLegMask.labels.nii'
-# I_m_rigidityCoeffIm_filename = "70_boneMask_rigidlyAligned.nii"         # "R3_boneMask_rigidlyAligned.nii"    "70_boneMask_rigidlyAligned.nii"
-# I_f_landmarks_filename = "---"            # "Choosing_bone_markers/R1_landmarks.pts"
-# I_m_landmarks_filename = "---"            # "Choosing_bone_markers/R3_landmarks.pts"
-# reg_type = "NON_RIGID"                   # 'RIGID' - 'NON_RIGID' - 'PRE_ALLIGNED_NON_RIGID'
-# n_itr_rigid = 0
-# n_itr_nonRigid = 2000                      # 250 -> 2000 (good: 500) -  for all resolutions
-# n_res = 4                               # default: 4     (used for all registrations)
-# use_rigidityPenalty = True
-# use_landmarks = False
-# I_deformed_filename = f'el - {I_m_filename.split("_")[0]} - use_rigidityPenalty={use_rigidityPenalty} - n_itr={n_itr_nonRigid}.nii'dataset_path = "S:/datasets/Sub_7/"             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-
-
 dataset_path = Path("S:/datasets/Sub_3/")                             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
 I_f = 'R1'
 I_m = 'R4'
 
-I_f_filename = Path(f"{I_f}_vol.nii")                                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
-I_m_filename = Path(f"{I_m}_vol.nii")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
+I_f_filename = Path(f"{I_f}_mask_allBones.nii")                                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
+I_m_filename = Path(f"{I_m}_mask_allBones.nii")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
 I_f_mask_filename = Path(f"{I_f}_mask_wholeLeg.nii")                                        # "R1_wholeLegMask.labels.nii"    '72_wholeLegMask.labels.nii' || R1-femur.nii
 use_I_m_mask = False
 I_m_mask_filename = Path(f'{I_m}______.nii')                                                                # mask_tibia  ||  R4_Patella.nii
 
 reg_type = "NON_RIGID"                                                              # 'RIGID' - 'NON_RIGID'
-n_itr_rigid = 0
-# n_itr_nonRigid = 1                                                               # 250 -> 2000 (good: 500) -  for all resolutions
+# n_itr = 1                                                               # 250 -> 2000 (good: 500) -  for all resolutions
 # n_res = 1                                                                           # default: 4     (used for all registrations)
 
 # rigid_alignment_transform__filename = f'____________'             # '{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt' ||
 use_rigidityPenalty = True
 I_m_rigidityCoeffIm_filename = Path(f"{I_m}_mask_allBones.nii")
 
-use_landmarks = True
-I_f_landmarks_filename = Path(f"{I_f}_landmarks_femur.pts")                                                               # "Choosing_bone_markers/R1_landmarks.pts"
-I_m_landmarks_filename = Path(f"{I_m}_landmarks_femur___transformed_from_{I_f}_landmarks_femur.pts")                                                               # "Choosing_bone_markers/R3_landmarks.pts"
+# use_landmarks = True
+I_f_landmarks_filename = Path(f"{I_f}_landmarks_femur_qrtr.pts")                                                               # "Choosing_bone_markers/R1_landmarks.pts"
+I_m_landmarks_filename = Path(f"{I_m}_landmarks_femur___transformed_from_{I_f}_landmarks_femur_qrtr.pts")                                                               # "Choosing_bone_markers/R3_landmarks.pts"
 
 
 #%% #check if the "image-to-world" affine tranforms are the same for all involved volumes & masks
@@ -73,28 +56,29 @@ arr__rigid_alignment_transform__filename = (
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
                                             )
-arr__n_itr_nonRigid = (2000, 500, 1000,)
-arr__n_res = (4, 5, 3, 2, 1,)               # def: (4, 1, 3, 2)
-arr__use_landmarks = (True,)
+arr__n_itr = (2000,)    # def: (2000, 500, 1000,)
+arr__n_res = (4,)               # def: (4, 1, 3, 2)
+arr__use_landmarks = (False,)
 
-for rigid_alignment_transform__filename, n_itr_nonRigid, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
-                                                                                                   arr__n_itr_nonRigid,
-                                                                                                   arr__n_res,
-                                                                                                   arr__use_landmarks) :
+for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
+                                                                                          arr__n_itr,
+                                                                                          arr__n_res,
+                                                                                          arr__use_landmarks) :
     I_deformed_filename = Path(f'{I_m_filename.stem}__defTo__{I_f_filename.stem}___at_'
-                               f'rgAln={rigid_alignment_transform__filename.stem.split("__")[3]}__'
-                               # f'n_itr={n_itr_nonRigid}__'
-                               f'{n_res}x{n_itr_nonRigid}__'
+                               f'rgAln={rigid_alignment_transform__filename.stem.split("__")[3]}'
+                               f'__{n_res}x{n_itr}'
                                # f'useLndmrks={use_landmarks}__'
-                               f'rgdtyWt=4__'
-                               f'LndmrksWt=0_25__'
-                               f'gridSpc=4__'
-                               f'cost=MI'
+                               f'__rgdtyWtAsBfr=4'
+                               f'__LndmrksWt=0_25'
+                               f'__n_lndmrks=NULL'
+                               # f'__erdMsk=F'
+                               # f'gridSpc=4__'
+                               # f'cost=MI'
                                f'.nii'
                                )
     exit_code = subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
                                 str(dataset_path), str(I_f_filename), str(I_m_filename), str(I_f_mask_filename), str(I_m_mask_filename), str(use_I_m_mask),
-                                str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr_rigid), str(n_itr_nonRigid),
+                                str(rigid_alignment_transform__filename), str(I_m_rigidityCoeffIm_filename), reg_type, str(n_itr),
                                 str(n_res), str(use_rigidityPenalty), str(use_landmarks), str(I_f_landmarks_filename), str(I_m_landmarks_filename),
                                 str(I_deformed_filename)])
     if exit_code != 0:
@@ -146,7 +130,7 @@ for rigid_alignment_transform__filename, n_itr_nonRigid, n_res, use_landmarks in
 # I_deformed_filename = f'{I_m_filename.split("_")[0]} - AFTER CLIPPING.nii'
 #     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
 #                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
-#                      str(n_itr_nonRigid), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
+#                      str(n_itr), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
 
 
 #%% Transformix ###
@@ -214,5 +198,3 @@ for rigid_alignment_transform__filename, n_itr_nonRigid, n_res, use_landmarks in
 # image_viewer.Execute(resultImage)
 # # image_viewer.SetTitle('deformation field')        # ImageJ can't view a 3d vector field
 # # image_viewer.Execute(deformation_fld)
-
-
