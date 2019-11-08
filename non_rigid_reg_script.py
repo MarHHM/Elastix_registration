@@ -14,9 +14,10 @@ from collections import defaultdict
 dataset_path = Path("S:/datasets/Sub_3/")                             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
 I_f = 'R1'
 I_m = 'R4'
+structToRegister = 'mask_allBones'                # vol || mask_allBones
 
-I_f_filename = Path(f"{I_f}_mask_allBones.nii")                                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
-I_m_filename = Path(f"{I_m}_mask_allBones.nii")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
+I_f_filename = Path(f"{I_f}_{structToRegister}.nii")                                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
+I_m_filename = Path(f"{I_m}_{structToRegister}.nii")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
 I_f_mask_filename = Path(f"{I_f}_mask_wholeLeg.nii")                                        # "R1_wholeLegMask.labels.nii"    '72_wholeLegMask.labels.nii' || R1-femur.nii
 use_I_m_mask = False
 I_m_mask_filename = Path(f'{I_m}______.nii')                                                                # mask_tibia  ||  R4_Patella.nii
@@ -30,8 +31,9 @@ use_rigidityPenalty = True
 I_m_rigidityCoeffIm_filename = Path(f"{I_m}_mask_allBones.nii")
 
 # use_landmarks = True
-I_f_landmarks_filename = Path(f"{I_f}_landmarks_femur_qrtr.pts")                                                               # "Choosing_bone_markers/R1_landmarks.pts"
-I_m_landmarks_filename = Path(f"{I_m}_landmarks_femur___transformed_from_{I_f}_landmarks_femur_qrtr.pts")                                                               # "Choosing_bone_markers/R3_landmarks.pts"
+n_lndmrks = 5
+I_f_landmarks_filename = Path(f"{I_f}_landmarks_femur_{n_lndmrks}.pts")                                                               # "Choosing_bone_markers/R1_landmarks.pts"
+I_m_landmarks_filename = Path(f"{I_m}_landmarks_femur___transformed_from_{I_f}_landmarks_femur_{n_lndmrks}.pts")                                                               # "Choosing_bone_markers/R3_landmarks.pts"
 
 
 #%% #check if the "image-to-world" affine tranforms are the same for all involved volumes & masks
@@ -54,26 +56,28 @@ arr__rigid_alignment_transform__filename = (
                                             Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__allBones.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
-                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt')
+                                            # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt'),
                                             )
-arr__n_itr = (1,)    # def: (2000, 500, 1000,)
-arr__n_res = (1,)               # def: (4, 1, 3, 2)
-arr__use_landmarks = (False,)
+arr__n_itr = (500,)                    # def: (2000, 500, 1000,)
+arr__n_res = (4,)                       # def: (4, 1, 3, 2)
+arr__use_landmarks = (True,)
 
 for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
                                                                                           arr__n_itr,
                                                                                           arr__n_res,
                                                                                           arr__use_landmarks) :
     I_deformed_filename = Path(f'{I_m_filename.stem}__defTo__{I_f_filename.stem}___at_'
-                               f'rgAln={rigid_alignment_transform__filename.stem.split("__")[3]}'
+                               f'rgAln-{rigid_alignment_transform__filename.stem.split("__")[3]}'
                                f'__{n_res}x{n_itr}'
-                               # f'useLndmrks={use_landmarks}__'
-                               f'__rgdtyWtAsBfr=4'
-                               f'__LndmrksWt=0_25'
-                               f'__n_lndmrks=NULL'
-                               # f'__erdMsk=F'
-                               # f'gridSpc=4__'
-                               # f'cost=MI'
+                               # f'__useLndmrks-{use_landmarks}'
+                               # f'__rgdtyWt-4'
+                               # f'__n_lndmrks-{n_lndmrks}'
+                               # f'__LndmrksWt-0_01'
+                               # f'__estMthd-orgnl'
+                               # f'__maxStpLn-100x'
+                               # f'__gridSpc-4'
+                               # f'__lowMemMI-F'
+                               # f'__cost-AdcdMattesMI'
                                f'.nii'
                                )
     exit_code = subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
