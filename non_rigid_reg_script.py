@@ -10,15 +10,19 @@ import call_transformix
 
 from collections import defaultdict
 
+# import ctypes
+# from win10toast import ToastNotifier
+
 #%%
 dataset_path = Path("S:/datasets/Sub_3/")                             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
 I_f = 'R1'
 I_m = 'R4'
 structToRegister = 'mask_allBones'                # vol || mask_allBones
+cropState = '_xtnd'                                  # '' || '_uncropd' || '_xtnd'
 
-I_f_filename = Path(f"{I_f}_{structToRegister}.nii")                                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
-I_m_filename = Path(f"{I_m}_{structToRegister}.nii")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
-I_f_mask_filename = Path(f"{I_f}_mask_wholeLeg.nii")                                        # "R1_wholeLegMask.labels.nii"    '72_wholeLegMask.labels.nii' || R1-femur.nii
+I_f_filename = Path(f"{I_f}_{structToRegister}{cropState}.nii")                                                     # flexed,   "R1_t1-minus-t2.nii"                  '72_t1-minus-t2'
+I_m_filename = Path(f"{I_m}_{structToRegister}{cropState}.nii")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.nii"   '70_t1-minus-t2_rigidlyAligned'
+I_f_mask_filename = Path(f"{I_f}_mask_wholeLeg{cropState}.nii")                                        # "R1_wholeLegMask.labels.nii"    '72_wholeLegMask.labels.nii' || R1-femur.nii
 use_I_m_mask = False
 I_m_mask_filename = Path(f'{I_m}______.nii')                                                                # mask_tibia  ||  R4_Patella.nii
 
@@ -28,7 +32,7 @@ reg_type = "NON_RIGID"                                                          
 
 # rigid_alignment_transform__filename = f'____________'             # '{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt' ||
 use_rigidityPenalty = True
-I_m_rigidityCoeffIm_filename = Path(f"{I_m}_mask_allBones.nii")
+I_m_rigidityCoeffIm_filename = Path(f"{I_m}_mask_allBones{cropState}.nii")
 
 # use_landmarks = True
 n_lndmrks = 5
@@ -41,12 +45,16 @@ I_f_affine = nib.load(f'{dataset_path}/{I_f_filename}').affine
 I_m_affine = nib.load(f'{dataset_path}/{I_m_filename}').affine
 I_f_mask_affine = nib.load(f'{dataset_path}/{I_f_mask_filename}').affine
 I_m_rigidityCoeffIm_affine = nib.load(f'{dataset_path}/{I_m_rigidityCoeffIm_filename}').affine
-if not ( np.array_equiv(I_f_affine, I_m_affine)
-     and np.array_equiv(I_f_affine, I_f_mask_affine)
-     and np.array_equiv(I_f_affine, I_m_rigidityCoeffIm_affine)
-                                                    ) :
+if not ( np.array_equiv(I_f_affine, I_m_affine) and
+         np.array_equiv(I_f_affine, I_f_mask_affine) and
+         np.array_equiv(I_f_affine, I_m_rigidityCoeffIm_affine)
+       ):
     print('!! ERROR: "image-to-world" affine transforms are not the same for all involved volumes & masks!')
-    exit()
+    exit(-1)
+
+
+
+
 
 
 
@@ -58,24 +66,27 @@ arr__rigid_alignment_transform__filename = (
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt'),
                                             )
-arr__n_itr = (500,)                    # def: (2000, 500, 1000,)
+arr__n_itr = (int(7*500),)              # from 1 to 5x
 arr__n_res = (4,)                       # def: (4, 1, 3, 2)
-arr__use_landmarks = (True,)
+arr__use_landmarks = (False,)
 
 for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
                                                                                           arr__n_itr,
                                                                                           arr__n_res,
                                                                                           arr__use_landmarks) :
-    I_deformed_filename = Path(f'{I_m_filename.stem}__defTo__{I_f_filename.stem}___at_'
+    I_deformed_filename = Path(f'{I_m}_defTo_{I_f}_{structToRegister}{cropState}___at_'
                                f'rgAln-{rigid_alignment_transform__filename.stem.split("__")[3]}'
                                f'__{n_res}x{n_itr}'
-                               # f'__useLndmrks-{use_landmarks}'
-                               # f'__rgdtyWt-4'
+                               # f'__nSptlSmpls-64x'
+                               f'__useLndmrks-{use_landmarks}'
                                # f'__n_lndmrks-{n_lndmrks}'
                                # f'__LndmrksWt-0_01'
                                # f'__estMthd-orgnl'
-                               # f'__maxStpLn-100x'
-                               # f'__gridSpc-4'
+                               # f'__JASDJASDJASDJ'
+                               f'__maxStpLn-100x'
+                               f'__rgdtyWt-2-0_1-0_1-0_1'
+                               # f'__rgdty-False'
+                               # f'__gridSpc-16'
                                # f'__lowMemMI-F'
                                # f'__cost-AdcdMattesMI'
                                f'.nii'
@@ -87,7 +98,11 @@ for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertool
                                 str(I_deformed_filename)])
     if exit_code != 0:
         print("ERROR DURING ELASTIX EXECUTION !!  -  skipping to next execution...")
+        f = open(f"{dataset_path}/{I_deformed_filename.stem}/ERROR.txt", "w+")              # just to indicate that this registration has already exited with error, not still running
+        f.close()
         continue
+
+    # ctypes.windll.user32.MessageBoxW(0, f"{I_deformed_filename} has finished", f"{I_deformed_filename} has finished", style="0")
 
     ## deform "I_m-related masks" & calc DSC for each
     overlapFilter = sitk.LabelOverlapMeasuresImageFilter()
@@ -100,7 +115,7 @@ for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertool
         im_to_deform___filename = Path(f'{I_m}_{mask_type}.nii')
         output_filename = Path(f'{im_to_deform___filename.stem}__deformed.nii')
         call_transformix.call_transformix(dataset_path = dataset_path,
-                                          im_to_deform_filename = im_to_deform___filename,
+                                          im_to_deform__filename = im_to_deform___filename,
                                           pMap_path = pMap_filename,
                                           output_filename = output_filename,
                                           )
@@ -135,15 +150,6 @@ for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertool
 #     subprocess.call(["python", "callElastix.py",                                        # using a subprocess for each iteration instead of normal function call to solve the "log file issue" (can't be recreated per process) -> see this issue  https://github.com/SuperElastix/SimpleElastix/issues/104
 #                      dataset_path, I_f_filename, I_m_filename, I_f_mask_filename, I_m_mask_filename, str(use_I_m_mask), rigid_alignment_transform__filename, I_m_rigidityCoeffIm_filename, reg_type, str(n_itr_rigid),
 #                      str(n_itr), str(n_res), str(use_rigidityPenalty), str(use_landmarks), I_f_landmarks_filename, I_m_landmarks_filename, I_deformed_filename])
-
-#%% Transformix ###
-# call_transformix.call_transformix(dataset_path = Path("S:/datasets/Sub_3/"),             # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-#                                   im_to_deform___filename = Path("R1_landmarks_knee.pts"),             # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
-#                                   # trnsfrmx_pMap = elstx_transform_pMap[0]
-#                                   pMap_path = Path('R4_to_R1__trans__rigid_alignment__femur/R4_to_R1__trans__rigid_alignment__femur.txt'),
-#                                   output_filename = Path(f'R1_landmarks_knee___rigidly_aligned_to_R4_femur.nii'),
-#                                   )
-
 
 #%% DICE only
 # mask_I_f = sitk.ReadImage(f'{dataset_path}/{I_f}_mask_allBones.nii')
@@ -201,3 +207,4 @@ for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertool
 # image_viewer.Execute(resultImage)
 # # image_viewer.SetTitle('deformation field')        # ImageJ can't view a 3d vector field
 # # image_viewer.Execute(deformation_fld)
+

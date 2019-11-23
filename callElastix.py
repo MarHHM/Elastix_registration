@@ -8,7 +8,17 @@ import nibabel as nib
 from collections import defaultdict
 
 def callElastix(**kwargs):
+    print(f" ######################  elastix ->  {kwargs['I_deformed_filename']}  ######################")
 
+    ## important params
+    finalGridSpacingInVoxels = 4.0                  # def: 4.0
+    maximumStepLengthMultiplier = 100.0             # def: 1 (but best result with (finalGridSpacingInVoxels = 4.0, rigidityPenaltyWtAtFullRes = 4.0) is at 100 ( R4 to R1 registration (bone mask)))
+
+    ## TESTING - currently inactive!!
+    # rigidityPenaltyWtAtFullRes = 1000.0                # def: 4.0 (used in Staring 2007 (alpha in eq. 1) -> 4.0 & 8.0 )
+    test = ('2', '0.1', '0.1', '0.1')
+
+    ####
     cwd = os.getcwd()
     os.chdir(kwargs['dataset_path'])
     # sitk.ProcessObject_GlobalDefaultDebugOn()       # to see detailed debug info (e.g. image readers... etc.)
@@ -47,7 +57,7 @@ def callElastix(**kwargs):
 
     ## Multi-resolution settings (b-spline grid & image pyramid)
     pMap['NumberOfResolutions'] = [kwargs["n_res"]]        # default: 4
-    pMap['FinalGridSpacingInVoxels'] = ['4.0']             # couldn't go lower than 2 for Sub_3 dataset. what is used in Staring 2007: 8.0; will be automatically approximated for each dimension during execution
+    pMap['FinalGridSpacingInVoxels'] = [str(finalGridSpacingInVoxels)]             # couldn't go lower than 2 for Sub_3 dataset. what is used in Staring 2007: 8.0; will be automatically approximated for each dimension during execution
     pMap['GridSpacingSchedule'] = [str(2 ** (int(kwargs["n_res"]) - 1 - i)) for i in range(int(kwargs["n_res"]))]  # generate using "list comprehension", default for 4 resolutions: ['2**3', '2**2', '2**1', '2**0']
     pMap['FixedImagePyramid'] = ['FixedSmoothingImagePyramid']  # no downsampling needed when a random sampler is used (what's used in Staring 2007 was 'RecursiveImagePyramid' but they use )
     pMap['MovingImagePyramid'] = ['MovingSmoothingImagePyramid']
@@ -57,7 +67,7 @@ def callElastix(**kwargs):
             imPyrSchdl_lst.append(str(2 ** (int(kwargs["n_res"]) - 1 - i)))
     pMap['ImagePyramidSchedule'] = imPyrSchdl_lst  # MUST be specified for all resolutions & DIMS in order to work correctly, otherwise the default schedule is created !!
     pMap['ErodeMask'] = ['true']  # better to use it for multi-res registration    (see   http://lists.bigr.nl/pipermail/elastix/2011-November/000627.html)
-    pMap['WritePyramidImagesAfterEachResolution'] = ['false']
+    pMap['WritePyramidImagesAfterEachResolution'] = ['true']
 
     ## Metric0: similarity
     pMap['Metric'] = ['AdvancedMattesMutualInformation']
@@ -70,11 +80,19 @@ def callElastix(**kwargs):
     if kwargs['reg_type'] == 'NON_RIGID' and eval(kwargs["use_rigidityPenalty"]):
         pMap['Metric'] = pMap['Metric'] + ('TransformRigidityPenalty',)
         pMap['MovingRigidityImageName'] = [kwargs['I_m_rigidityCoeffIm_filename']]
-        pMap['Metric1Weight'] = ['0.1', '0.1', '4', '4']  # ['0.1', '0.1', '0.1', '4']   ['0.5', '0.3', '1000', '1000']
-        pMap['DilateRigidityImages'] = ['false', 'false', 'true', 'true', 'true']
-        pMap['DilationRadiusMultiplier'] = ['2.0']  # originaly: 2.0
-        pMap['OrthonormalityConditionWeight'] = ['1.0']  # originaly: 1.0     (rigidity preservation)
-        pMap['PropernessConditionWeight'] = ['2.0']  # originaly: 2.0          (volume preservation)
+        ### TEST
+        rigidityPenaltyWts = ['0.1'] * int(kwargs["n_res"])                   # def: 0.1 for all resolutions except last one (higher wt: 4) (e.g. ('0.1', '0.1','0.1', '4') for 4 res)
+        # rigidityPenaltyWts[-1] = str(rigidityPenaltyWtAtFullRes)
+        # pMap['Metric1Weight'] = tuple(rigidityPenaltyWts)                     # only last res gets the high weight
+        # pMap['Metric1Weight'] = [str(rigidityPenaltyWtAtFullRes)]               # all resolutions get the same weight !!
+        pMap['Metric1Weight'] = test
+
+        pMap['LinearityConditionWeight'] = ['100.0']  # originaly in Staring 2007: 100.0
+        pMap['OrthonormalityConditionWeight'] = ['1.0']  # originaly in Staring 2007: 1.0     (rigidity preservation - most dominant)
+        pMap['PropernessConditionWeight'] = ['2.0']  # originaly in Staring 2007: 2.0          (volume preservation)
+        pMap['DilateRigidityImages'] = ['false', 'false', 'true', 'true']       # def: true   (extend region of rigidity to force rigidity of the inner region)
+        pMap['DilationRadiusMultiplier'] = ['2.0']  # originaly in Staring 2007: 2.0 (def: 1x)    (multiples of the grid spacing of the B-spline transform (so, differs with the resolution))
+
 
     ## Metric2: Corresponding landmarks (MUST add it as the last metric)
     if eval(kwargs["use_landmarks"]):
@@ -93,14 +111,15 @@ def callElastix(**kwargs):
     pMap['AutomaticParameterEstimation'] = ['true']
     pMap['ASGDParameterEstimationMethod'] = ['Original']       # Original || DisplacementDistribution-> more efficient estimation of intial step size (Qiao et al., 2016 in elastix doc)
     pMap['UseAdaptiveStepSizes'] = ['true']
-    # meanVoxSpc = 1.25
-    # pMap['MaximumStepLength'] = [str(meanVoxSpc*175)]                       # Default: mean voxel spacing of I_f & I_m (1.25 for Sub_3). It's the maximum voxel displacement between two iterations. The larger this parameter, the more aggressive the optimization.
+    meanVoxSpc = 1.25
+    pMap['MaximumStepLength'] = [str(meanVoxSpc*maximumStepLengthMultiplier)]                       # Default: mean voxel spacing of I_f & I_m (1.25 for Sub_3). It's the maximum voxel displacement between two iterations. The larger this parameter, the more aggressive the optimization.
     # pMap['ValueTolerance'] = ['1']                           # seems ineffective for 'AdaptiveStochasticGradientDescent'
     # pMap['GradientMagnitudeTolerance'] = ['0.000944']        # seems ineffective for 'AdaptiveStochasticGradientDescent'
 
     ### I_f sampler params
     pMap['ImageSampler'] = ['RandomCoordinate']        # {Random, Full, Grid, RandomCoordinate}
-    pMap['NumberOfSpatialSamples'] = ['5000']          # def: 5000. Don't go lower than 2000
+    numSaptialSamples = 5000
+    pMap['NumberOfSpatialSamples'] = [str(numSaptialSamples*1)]          # def: 5000. Don't go lower than 2000
     pMap['NewSamplesEveryIteration'] = ['true']        # def: False. But highly recommended to use it specailly with random samplers.
     pMap['UseRandomSampleRegion'] = ['false']
     # pMap['SampleRegionSize'] = ['imSz_X_mm/3', 'imSz_Y_mm/3', 'imSz_Z_mm/3']         # if 'UseRandomSampleRegion' is used, this param is effective. VIP -> must specified in mm & for each dim (not each res !). Default: imSz_mm/3
@@ -148,7 +167,7 @@ def callElastix(**kwargs):
     resultImage_arr = resultImage_arr.clip(min=I_m_arr.min(), max=I_m_arr.max())
 
     # write result using nibabel (not sitk.WriteImage() as it screws the header (sform_code & qform_code & quaternion))
-    I_f_read_sitk_write_nib = nib.Nifti1Image(resultImage_arr.swapaxes(0, 2),  # swapping due to diff bet nibabel & itk image axes
+    I_f_read_sitk_write_nib = nib.Nifti1Image(resultImage_arr.swapaxes(0, 2),        # swapping the local im coords (aka. lattice) due to diff bet nibabel & itk image axes
                                               nib.load(kwargs['I_f_filename']).affine)                                    # use the image resulting from Elastix registration with the affine transfrom coming from the original data (e.g. fixed im)
     try:
         I_f_read_sitk_write_nib.to_filename(f'{Elastix.GetOutputDirectory()}/{kwargs["I_deformed_filename"]}')
