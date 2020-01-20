@@ -80,8 +80,9 @@ def call_transformix(**kwargs):
 
 if __name__ == '__main__':          # in case "callTransformix" is called directly by the interpreter
     call_transformix(dataset_path = Path("S:/datasets/Sub_3/"),                              # 'S:/datasets/Sub_3/'        # "S:/datasets/Sub_7/"        # "C:/Users/bzfmuham/OneDrive/Knee-Kinematics/elastix 4.9.0/elastix-4.9.0-example_2/exampleinput/"
-                     im_to_deform__filename = Path("gridIm_0.01.nii"),                 # "R3_t1-minus-t2_rigidlyAligned.nii"     "70_t1-minus-t2_rigidlyAligned.nii"
+                     im_to_deform__filename = Path("gridIm_0.01.nii"),
                      # trnsfrmx_pMap = elstx_transform_pMap[0]
-                     pMap_path = Path('GOOD_RESULTS/R4_defTo_R1_mask_allBones_xtnd___at_rgAln-femur__4x3000__useLndmrks-False__maxStpLn-100x/TransformParameters.0.txt'),
+                     pMap_path = Path('4x3000__rgdty-8-0_1-0_1-0_1__fnlGrdSpc-16'
+                                      '/TransformParameters.0.txt'),
                      output_filename = Path(f'gridIm_def.nii'),
                     )
