@@ -40,7 +40,7 @@ if __name__ == '__main__' :
     n_dim = 3
 
     dataset_path = Path("S:/datasets/Sub_3")
-    gridIm_itk = sitk.GridSource(   size=(248, 213, 205),                        # size of the lattice (in pix)
+    gridIm_itk = sitk.GridSource(   size=(256, 182, 142),                        # size of the lattice (in pix)
                                     spacing = (1.25, 1.25, 1.25),                       # voxel spacing (aka size) in mm
                                     gridSpacing=(1.0, 1.0, 1.0),             # space bet grid lines (in pix)
                                     sigma=(sigma,)*n_dim,                           # (list multiplication) thickness of the grid lines (less is thinner lines (i.e. tighter gaussian))
@@ -52,7 +52,7 @@ if __name__ == '__main__' :
     # myshow(gridIm_itk, 'Grid Input')        # won't work with 3d data
 
     # # save as .nii
-    affine_chosen =  nib.load(f"{dataset_path}/R1_mask_allBones_xtnd.nii").affine         # any data from the same subject is ok (all should be having the same "image-to-world transform")
+    affine_chosen =  nib.load(f"{dataset_path}/R1_vol_uncropd.nii").affine         # any data from the same subject is ok (all should be having the same "image-to-world transform")
     gridIm_nii = nib.Nifti1Image(sitk.GetArrayFromImage(gridIm_itk).swapaxes(0, 2),         # swapping the local im coords (aka. lattice) due to diff bet nibabel & itk image axes
                                  affine_chosen)
-    gridIm_nii.to_filename(f'{dataset_path}/gridIm_{sigma}.nii')
+    gridIm_nii.to_filename(f'{dataset_path}/gridIm_{sigma}_3dVol.nii')

@@ -59,8 +59,8 @@ def callElastix(**kwargs):
         pMap['BSplineTransformSplineOrder'] = ['3']
 
     # Input-related params
-    pMap['FixedImageDimension'] = [str(I_f.GetDimension())]
-    pMap['MovingImageDimension'] = [str(I_m.GetDimension())]
+    # pMap['FixedImageDimension'] = [str(I_f.GetDimension())]             # from elx 4.6 not needed anymore
+    # pMap['MovingImageDimension'] = [str(I_m.GetDimension())]
     pMap['DefaultPixelValue'] = [str(sitk.GetArrayFromImage(elx.GetMovingImage(0)).min())]  # sets pixel values outside the moving image grid (at interpolation) -> set it to <= the min in your dataset (i.e. bgd)
 
     ## Registration approach
@@ -92,13 +92,7 @@ def callElastix(**kwargs):
     if kwargs['reg_type'] == 'NON_RIGID' and eval(kwargs["use_rigidityPenalty"]):
         pMap['Metric'] = pMap['Metric'] + ('TransformRigidityPenalty',)
         pMap['MovingRigidityImageName'] = [kwargs['I_m_rigidityCoeffIm_filename']]
-        ### TEST
-        rigidityPenaltyWts = ['0.1'] * int(kwargs["n_res"])                   # def: 0.1 for all resolutions except last one (higher wt: 4) (e.g. ('0.1', '0.1','0.1', '4') for 4 res)
-        # rigidityPenaltyWts[-1] = str(rigidityPenaltyWtAtFullRes)
-        # pMap['Metric1Weight'] = tuple(rigidityPenaltyWts)                     # only last res gets the high weight
-        # pMap['Metric1Weight'] = [str(rigidityPenaltyWtAtFullRes)]               # all resolutions get the same weight !!
         pMap['Metric1Weight'] = rgdtyWt_vec
-
         pMap['LinearityConditionWeight'] = ['100.0']  # originaly in Staring 2007: 100.0
         pMap['OrthonormalityConditionWeight'] = ['1.0']  # originaly in Staring 2007: 1.0     (rigidity preservation - most dominant)
         pMap['PropernessConditionWeight'] = ['2.0']  # originaly in Staring 2007: 2.0          (volume preservation)

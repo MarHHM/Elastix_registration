@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 import itertools
@@ -20,6 +21,7 @@ I_m = 'R4'
 structToRegister = 'mask_allBones'                # vol || mask_allBones
 cropState = '_xtnd'                                  # '' || '_uncropd' || '_xtnd'
 dataFrmt = 'nii'
+
 
 I_f_filename = Path(f"{I_f}_{structToRegister}{cropState}.{dataFrmt}")                                                     # flexed,   "R1_t1-minus-t2.{dataFrmt}"                  '72_t1-minus-t2'
 I_m_filename = Path(f"{I_m}_{structToRegister}{cropState}.{dataFrmt}")                                      # extended, "R3_t1-minus-t2_rigidlyAligned.{dataFrmt}"   '70_t1-minus-t2_rigidlyAligned'
@@ -55,12 +57,6 @@ if dataFrmt == 'nii' :
         exit(-1)
 
 
-
-
-
-
-
-
 #%% MULTI registration
 arr__rigid_alignment_transform__filename = (
                                             Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__femur.txt'),
@@ -68,9 +64,9 @@ arr__rigid_alignment_transform__filename = (
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__tibia.txt'),
                                             # Path(f'{I_m}_to_{I_f}__trans__rigid_alignment__patella.txt'),
                                             )
-finalGridSpacingInVoxels = 4                  # def: 4
-arr__n_itr = (int(20*500),)              # from 1 to 5x
-arr__n_res = (4,)                       # def: (4, 1, 3, 2)
+finalGridSpacingInVoxels = 64                  # def: 4
+arr__n_itr = (1,)              # from 1 to 5x
+arr__n_res = (1,)                       # def: (4, 1, 3, 2)
 arr__use_landmarks = (False,)
 
 for rigid_alignment_transform__filename, n_itr, n_res, use_landmarks in itertools.product(arr__rigid_alignment_transform__filename,
