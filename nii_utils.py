@@ -3,6 +3,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 from matplotlib import pyplot as plt
+import SimpleITK as sitk
 
 ############################################################################
 
@@ -47,6 +48,24 @@ def extract_2d_sag_slice(dataset_folder, dataset_file, sagittal_slc_idx, output_
     im = nib.Nifti1Image(sagital_slc_3d, dataset.affine)
     im.to_filename(f"{dataset_file.stem}__slc-{sagittal_slc_idx}.nii")
 
+def correct_transform_via_sitk(dataset_path, output_dir, srcOfCorrectTransform, imToCorrect, correctedImNewName):
+    cwd = os.getcwd()
+    os.chdir(dataset_path)
+
+    im_to_correct = sitk.ReadImage(f'{output_dir}/{imToCorrect}')
+    if im_to_correct.GetMetaData('bitpix') in ("8", "16"):                                          # as sitk might read 8-bit unsigned as 16-bit signed
+        im_to_correct = sitk.Cast(im_to_correct, sitk.sitkUInt8)
+    os.remove(f"{output_dir}/{imToCorrect}")                                                    # as it will be replaced by the corrected result in the following
+    im_to_correct__arr = sitk.GetArrayFromImage(im_to_correct)
+
+    if "nii" in imToCorrect:                                                                    # write result using nibabel (not sitk.WriteImage() as it screws the header (sform_code & qform_code & quaternion))
+        corrected_im = nib.Nifti1Image(im_to_correct__arr.swapaxes(0, 2),                       # swapping the local im coords (aka. lattice) due to diff bet nibabel & itk image axes
+                                        nib.load(srcOfCorrectTransform).affine)                                    # use the image resulting from elx registration with the affine transfrom coming from the original data (e.g. fixed im)
+        corrected_im.to_filename(f'{output_dir}/{correctedImNewName}')
+    else:               # e.g. if image is png --> # write directly though sitk
+        sitk.WriteImage(im_to_correct__arr, f'{output_dir}/{correctedImNewName}')
+
+    os.chdir(cwd)                                                                                       # back to the working directory before entering this method
 
 #########################################################################
 
@@ -69,7 +88,20 @@ if __name__ == '__main__':
 
     ####################################################
 
-    for dataset_file in (Path("R1_mask_allBones_xtnd.nii"), Path("R4_mask_allBones_xtnd.nii"), Path("gridIm_0.01_xtnd.nii")):
-        extract_2d_sag_slice("S:/datasets/Sub_3", dataset_file, 94, np.uint8)
+    # for dataset_file in (Path("2d_highRes.nii"),):
+    #     extract_2d_sag_slice("S:/datasets/s3_2/2d_highRes", dataset_file, 0, np.float32)
 
+    #region    Extract 2d slice from s3_2\2d_highRes (in future, make it a general function)
+    slc_idx = 13
 
+    os.chdir(r"S:\datasets\s3_2\2d_highRes")
+    # data = sitk.ReadImage("2d_highRes.nii", sitk.sitkFloat32) #ERROR: can't interpret transform (det = 0) !!
+    data = nib.load("2d_highRes.nii")
+    # WARNING: get_fdata() suffers from truncating the max intensity for some slices (e.g. [:, :, 1, 50])
+    im = data.get_fdata(caching="fill", dtype=np.float32)[:, :, 1, slc_idx]
+    ## both get_unscaled() & get_data() still don't solve the max intensity truncation experienced with some slices in get_fdata()
+    # im = data.dataobj.get_unscaled()[:, :, 1, slc_idx]
+    # im = data.get_data()[:, :, 1, slc_idx]
+    im = np.swapaxes(im, 0, 1)
+    sitk.WriteImage(sitk.GetImageFromArray(im), f"slc_{slc_idx}_extended_tex.tif")
+    #endregion
