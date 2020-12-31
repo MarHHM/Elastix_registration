@@ -1,4 +1,4 @@
-// VIP: I overwrite most of these params in my script (callElastix.py) before executing te registration  !!
+// VIP: I overwrite most of these params in my script (call_elastix.py) before executing te registration  !!
 
 //ImageTypes
 //(FixedImagePixelType "short")

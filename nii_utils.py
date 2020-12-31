@@ -7,9 +7,9 @@ import SimpleITK as sitk
 
 ############################################################################
 
-def fix_nii_exported_from_Amira(originalFile_name, wrongFile_name):
-    original_im = nib.load(originalFile_name)
-    wrong_im = nib.load(wrongFile_name)
+def fix_nii_exported_from_Amira(dataset_path, im_with_crrct_trnsfrm__name, im_with_wrng_trnsfrm__name):
+    original_im = nib.load(f'{dataset_path}/{im_with_crrct_trnsfrm__name}')
+    wrong_im = nib.load(f'{dataset_path}/{im_with_wrng_trnsfrm__name}')
 
     # to fix the .nii exported from Amira:
     #   1- you might need to flip the lattice (i.e. local image coords) or not (according to if flipping happened in
@@ -18,7 +18,7 @@ def fix_nii_exported_from_Amira(originalFile_name, wrongFile_name):
 
     # corrected_im = nib.Nifti1Image(np.flip(wrong_im.get_data()), original_im.affine)      # works for Sub_3-2018-09-11
     corrected_im = nib.Nifti1Image(wrong_im.get_data(), original_im.affine)                 # works for Sub_7-2019-07-05
-    corrected_im.to_filename(f'FIXED-{wrongFile_name}')
+    corrected_im.to_filename(f'{dataset_path}/FIXED-{im_with_wrng_trnsfrm__name}')
 
 def replace_transform_nii(wrongFile_name):
     # correct_affine = np.array([[-1.25, 0, 0, -59.66099548],                     # FOR SUB_3 only (use another one for sub_7)
@@ -48,7 +48,7 @@ def extract_2d_sag_slice(dataset_folder, dataset_file, sagittal_slc_idx, output_
     im = nib.Nifti1Image(sagital_slc_3d, dataset.affine)
     im.to_filename(f"{dataset_file.stem}__slc-{sagittal_slc_idx}.nii")
 
-def correct_transform_via_sitk(dataset_path, output_dir, srcOfCorrectTransform, imToCorrect, correctedImNewName):
+def correct_transform(dataset_path, output_dir, srcOfCorrectTransform, imToCorrect, correctedImNewName):
     cwd = os.getcwd()
     os.chdir(dataset_path)
 
@@ -66,6 +66,17 @@ def correct_transform_via_sitk(dataset_path, output_dir, srcOfCorrectTransform, 
         sitk.WriteImage(im_to_correct__arr, f'{output_dir}/{correctedImNewName}')
 
     os.chdir(cwd)                                                                                       # back to the working directory before entering this method
+
+# x,y,z are abitrary (just compare the limits whith what you delineate in Amira's crop editor)
+def nii__crop_scan(dataset_path, scan_name, crop_x_lims, crop_y_lims, crop_z_lims):
+    scan = nib.load(f"{dataset_path}/{scan_name}.nii")
+    nda = scan.get_data()
+    nda_crpd = nda[ crop_x_lims[0]:crop_x_lims[1],
+                    crop_y_lims[0]:crop_y_lims[1],
+                    crop_z_lims[0]:crop_z_lims[1]]
+    scan_crpd = nib.Nifti1Image(nda_crpd, scan.affine)
+    scan_crpd.to_filename(f"{dataset_path}/{scan_name}_crpd.nii")
+
 
 #########################################################################
 
@@ -92,16 +103,29 @@ if __name__ == '__main__':
     #     extract_2d_sag_slice("S:/datasets/s3_2/2d_highRes", dataset_file, 0, np.float32)
 
     #region    Extract 2d slice from s3_2\2d_highRes (in future, make it a general function)
-    slc_idx = 13
-
-    os.chdir(r"S:\datasets\s3_2\2d_highRes")
-    # data = sitk.ReadImage("2d_highRes.nii", sitk.sitkFloat32) #ERROR: can't interpret transform (det = 0) !!
-    data = nib.load("2d_highRes.nii")
-    # WARNING: get_fdata() suffers from truncating the max intensity for some slices (e.g. [:, :, 1, 50])
-    im = data.get_fdata(caching="fill", dtype=np.float32)[:, :, 1, slc_idx]
-    ## both get_unscaled() & get_data() still don't solve the max intensity truncation experienced with some slices in get_fdata()
-    # im = data.dataobj.get_unscaled()[:, :, 1, slc_idx]
-    # im = data.get_data()[:, :, 1, slc_idx]
-    im = np.swapaxes(im, 0, 1)
-    sitk.WriteImage(sitk.GetImageFromArray(im), f"slc_{slc_idx}_extended_tex.tif")
+    # slc_idx = 13
+    #
+    # os.chdir(r"S:\datasets\s3_2\2d_highRes")
+    # # data = sitk.ReadImage("2d_highRes.nii", sitk.sitkFloat32) #ERROR: can't interpret transform (det = 0) !!
+    # data = nib.load("2d_highRes.nii")
+    # # WARNING: get_fdata() suffers from truncating the max intensity for some slices (e.g. [:, :, 1, 50])
+    # im = data.get_fdata(caching="fill", dtype=np.float32)[:, :, 1, slc_idx]
+    # ## both get_unscaled() & get_data() still don't solve the max intensity truncation experienced with some slices in get_fdata()
+    # # im = data.dataobj.get_unscaled()[:, :, 1, slc_idx]
+    # # im = data.get_data()[:, :, 1, slc_idx]
+    # im = np.swapaxes(im, 0, 1)
+    # sitk.WriteImage(sitk.GetImageFromArray(im), f"slc_{slc_idx}_extended_tex.tif")
     #endregion
+
+    #%%
+    # correct_transform(dataset_path =r'S:\datasets\s1_3',
+    #                   output_dir = r'S:\datasets\s1_3',
+    #                   srcOfCorrectTransform = 'I_f__57_MK_UTE_FA4_noWeight_tex__cropd.nii',
+    #                   imToCorrect = 'I_f___57_MK_UTE_FA4_noWeight_tex__cropd2.labels.binary.nii',
+    #                   correctedImNewName = 'I_f___57_MK_UTE_FA4_noWeight_mask_allBones__cropd.nii')
+
+    #%%
+    nii__crop_scan(r"S:\datasets\s4_2", "FIXED-im_middle.labels_tibia",
+                   crop_x_lims=(110, 280),      # i get these values by manually delinieating edges on Amira's crop editor
+                   crop_y_lims=(40, 155),
+                   crop_z_lims=(20, 133))
